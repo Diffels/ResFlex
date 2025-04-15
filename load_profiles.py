@@ -13,7 +13,7 @@ from Household_mod import Household_mod
 from plots import make_demand_plot
 from Flexibility import flexibility_window
 from ramp_mobility.EV_run import EV_run
-from heating_4 import run_space_heating
+from heating_3 import run_space_heating
 from utils import index_to_datetime, occ_reshape
 from Hot_water import hot_water_elec_consumption
 import time
