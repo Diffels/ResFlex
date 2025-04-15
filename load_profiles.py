@@ -13,7 +13,7 @@ from Household_mod import Household_mod
 from plots import make_demand_plot
 from Flexibility import flexibility_window
 from ramp_mobility.EV_run import EV_run
-from heating_4 import run_space_heating
+from heating_3 import run_space_heating
 from utils import index_to_datetime, occ_reshape
 from Hot_water import hot_water_elec_consumption
 import time
@@ -53,7 +53,7 @@ def get_profiles(config, dwelling_compo):
 
         #---Space Heating -------------
         shsetting_data = family.sh_day
-        heating_consumption = run_space_heating(shsetting_data, config['nb_days'])*1e3 #return an array with powers in kW every 10min, times 1000 to have the results in Watts
+        heating_consumption = run_space_heating(shsetting_data, config['nb_days'], config['start_day'])*1e3 #return an array with powers in kW every 10min, times 1000 to have the results in Watts
         heating_cons_duplicate = [elem for elem in heating_consumption for _ in range(10)]   # To go from 10 to 1 min time step
         heating_cons_duplicate = pd.Series(heating_cons_duplicate)/4                         #divided by the COP of conventional heat pump 
         df['Heating'] = df.get('Heating', 0) + heating_cons_duplicate

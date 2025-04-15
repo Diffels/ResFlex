@@ -156,9 +156,10 @@ def heat_loss(house, T_in, T_out, P_irradiation):
 
     ACH = 0.1  # Air changes per hour [1/h]
     
-    U_house = (U.U_wall * A_wall + U.U_roof * A_roof + U.U_floor * A_floor + U.U_window * A_window)
+    U_house = (U.U_wall * A_wall + U.U_roof * A_roof + U.U_floor * A_floor + U.U_wall * A_window)
+
     # print(U_house)
-    P_conduction = U_house * (T_in - T_out)
+    P_conduction = U_house * (T_in - T_out)/2
     Q_exfiltration = (ACH/60)*house.volume*Air.density*Air.specific_heat*(T_in - T_out)/60 # in W: [1/min] * m3 * kg/m3 * J/(kg.K) * K / 60s
     P_loss = P_conduction - P_irradiation + Q_exfiltration # Net losses including solar gain
     return P_loss  # in W
@@ -186,7 +187,7 @@ def heating_dynamics(t, T_in, house: House, T_set, T_out, HP, P_nom, P_irr, comf
 
     return [dTdt]
 
-def simulate_heating_dynamics(house, sim_days, T_set_series, T_out_series, P_irr_series, comfort=0.5, P_nom=8000):
+def simulate_heating_dynamics(house, sim_days, start_day, T_set_series, T_out_series, P_irr_series, comfort=0.5, P_nom=8000):
     """Simulate space heating dynamics with controlled HP power."""
     T0 = T_set_series[0]  # Initial indoor temperature
     HP0 = 0  # Initial HP power
@@ -199,13 +200,14 @@ def simulate_heating_dynamics(house, sim_days, T_set_series, T_out_series, P_irr
 
     # Counter for consecutive time steps with HP power on
     ts_power_on = 0
+    flag_dead_band = False  # Flag for dead band condition
 
     for day in range(sim_days):
         for i in range(144):  # 144 x 10 min time steps per day
             ts = day * 144 + i
-            T_set = T_set_series[ts]  
-            T_out = T_out_series[ts]  
-            P_irr = P_irr_series[ts]  
+            T_set = T_set_series[ts]  # Not adjusted since only considered sim_days days
+            T_out = T_out_series[ts+start_day*144]  # Adjusted for start day
+            P_irr = P_irr_series[ts+start_day*144]  # Adjusted for start day
 
             # Solve heating dynamics
             sol = solve_ivp(
@@ -225,26 +227,42 @@ def simulate_heating_dynamics(house, sim_days, T_set_series, T_out_series, P_irr
             if (prob_heat_pump_flex > 0.5) and (23 <= hour or hour < 6):
                 HP[ts] = 0  # HP is off
             else:
-                
-                # Check if close to the setpoint temperature and HP has been on for a while (1 hour)
-                if abs(T_set - T[ts]) <= 0.5 and ts_power_on > 6:  
-                    HP[ts] = 0
-                    ts_power_on = 0
-                # Check if temperature is too high (case where T_in > T_set + 0.5) 
-                elif T[ts] - T_set > 3:
-                    HP[ts] = 0
-                    ts_power_on = 0
-                # Otherwise, apply comfort factor
+                # Check if temperature is within dead band
+                flag_dead_band = (abs(T_set - T[ts]) <= 0.5)  # Dead band condition
+
+                if T[ts] <= T_set:  # If indoor temperature is below setpoint
+                    if abs(T_set - T[ts]) <= 0.5 and flag_dead_band:
+                        HP[ts] = 0
+                        ts_power_on = 0
+                    else:
+                        HP[ts] = P_nom  # Turn on HP
+                        ts_power_on += 1 
+                        flag_dead_band = False
                 else:
-                    HP[ts] = max(min(comfort * (T_set - T[ts]) * P_nom, P_nom), 0)
-                    ts_power_on += 1
+                    flag_dead_band = True
+                    HP[ts] = 0
+                    ts_power_on = 0
+                
+                
+                # # Check if close to the setpoint temperature and HP has been on for a while (1 hour)
+                # if abs(T_set - T[ts]) <= 0.5 and ts_power_on > 6:  
+                #     HP[ts] = 0
+                #     ts_power_on = 0
+                # # Check if temperature is too high (case where T_in > T_set + 0.5) 
+                # elif T[ts] - T_set > 3:
+                #     HP[ts] = 0
+                #     ts_power_on = 0
+                # # Otherwise, 
+                # else:
+                #     HP[ts] = P_nom
+                #     ts_power_on += 1
             
 
     return HP, T
 
 
 
-def run_space_heating(T_set_series, sim_days):
+def run_space_heating(T_set_series, sim_days, start_day=0):
     """Run multiple simulations and compute average results for indoor temperature and HP power."""
     
     # results_T = np.zeros(sim_days * 144)
@@ -257,16 +275,38 @@ def run_space_heating(T_set_series, sim_days):
     P_irr_series = irradiation(house, weather_path)  # Solar irradiation series
 
     # Simulate heating system 
-    P_HP_series, T = simulate_heating_dynamics(house, sim_days, T_set_series, T_out_series, P_irr_series, P_nom=8000, comfort=0.5)
+    P_HP_series, T = simulate_heating_dynamics(house, sim_days, start_day, T_set_series, T_out_series, P_irr_series, P_nom=8000, comfort=0.5)
+
+    print(len(T))
+    print(len(T_set_series))
+    plot_temperatures(sim_days, T_set_series, T)
 
     results += P_HP_series/1e3  # Convert to kW
 
     total_power = results.sum()/4 # kWe (COP = 4)
     total_consumption = total_power / 6 # 6 is the number of time steps per hour
 
-    print("Price:", total_consumption*0.3, "€"," for ", sim_days, " days.") # 30 cts per kWh
+    # print("Price:", total_consumption*0.3, "€"," for ", sim_days, " days.") # 30 cts per kWh
     
     return results
+
+
+def plot_temperatures(sim_days, T_set, T_in):
+    """Plot indoor temperature and setpoint temperature."""
+    time_intervals = range(sim_days * 144)
+
+    plt.figure(figsize=(12, 8))
+    plt.plot(time_intervals, T_set[:len(time_intervals)], label="Setpoint Temperature", color="tab:green", linestyle="--")
+    plt.plot(time_intervals, T_in[:len(time_intervals)], label="Indoor Temperature", color="tab:blue", alpha=0.5)
+    print(sim_days)
+    plt.xticks(range(0, sim_days * 144, 6), labels=list(range(0, sim_days * 24)))
+    plt.xlabel("Time [h] ")
+    plt.ylabel("Temperature (°C)")
+    plt.title("Indoor Temperature Over Time with DEAD BAND")
+    plt.legend()
+    plt.grid()
+    plt.show()
+
 
 def comfort_study(sim_days, T_set_series):
     """Study the impact of comfort factor on heating dynamics."""
