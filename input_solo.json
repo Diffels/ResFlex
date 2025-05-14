@@ -1,5 +1,5 @@
 {  
-    "nb_days": 31,
+    "nb_days": 7,
     "timestep": 15,
     "year": 2024,
     "country": "BE",                  
@@ -18,12 +18,16 @@
     "HotWater": true,
     "HotWater_max_power": 3,
 
-    "EV_presence": true,          
-    "EV_size": "medium",
-    "EV_usage": "medium",
-    "EV_charger_power": 11, 
-    "EV_km_per_year": 15000,
-    
+    "EV_data":{
+        "isEV": true,          
+        "capacity": 75,
+        "consumption": 25,
+        "charger_power": 10,
+        "eta": 0.9, 
+        "yearly_km": 15000,
+        "soc_max": 0.8
+    },
+
     "dwelling_nb_compo":4,
     "dwelling_member1":	"Random",
     "dwelling_member2":	"Random",

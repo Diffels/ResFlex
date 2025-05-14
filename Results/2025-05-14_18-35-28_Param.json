@@ -1,0 +1,25 @@
+{
+    "HP": {
+        "Pmax": 10,
+        "Utot": 186.46,
+        "Cenv": 19146900.0,
+        "Cair": 307781.25,
+        "COP": 3.5
+    },
+    "WB": {
+        "T_initial": 14,
+        "T_final": 60,
+        "efficiency": 0.9,
+        "specific_heat": 4186,
+        "rho": 1
+    },
+    "EV": {
+        "isEV": true,
+        "capacity": 75,
+        "consumption": 25,
+        "charger_power": 10,
+        "eta": 0.9,
+        "yearly_km": 15000,
+        "soc_max": 0.8
+    }
+}

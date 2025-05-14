@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 from Household_mod import Household_mod
 from plots import plot_P
-from ramp_mobility.EV_run import electric_vehicle
+from EV import EV_run
 from Heating import space_heating
 #from utils import index_to_datetime, occ_reshape
 from Hot_water import water_boiler
@@ -250,6 +250,7 @@ def one_profile(config):
     if config['SpaceHeating']:
         shsetting_data = family.sh_day
         P_HP, Flex_HP, Param_HP = space_heating(shsetting_data, config['nb_days'], config['start_day'], config['Year'], config['Size'], config['Floors'], config['P_th_nom'])
+        print(f"P_HP: {P_HP}")
         df_P['Heating'] = P_HP/config['COP'] 
         Param_HP['COP'] = config['COP']
         Flex_HP.index = df_Flex.index
@@ -266,12 +267,11 @@ def one_profile(config):
     #------------------------------
 
     #---EV-----------------
-    if config['EV_presence']:
-        # Reshaping of occupancy profile 
+    if config['EV_data']['isEV']:
+        # Redefining occupancy profile: (1: Active, 2: Sleeping)-> 1: At Home; (3: Not at home)-> 0: Not at home
         EV_occ = np.where(np.isin(family.occ_m, [1, 2]), 1, 0)
         # Running EV module
-        P_EV, Flex_EV, Param_EV = electric_vehicle(EV_occ,config, plot=config['plot'])
-        # EV_flex = pd.DataFrame({'EVCharging':load_profile, 'Occupancy':occupancy})
+        P_EV, Flex_EV, Param_EV = EV_run(EV_occ, config, plot=True)
         df_P['EVCharging'] =  P_EV
         df_Flex = pd.concat([df_Flex, Flex_EV], axis=1)
         dic_Param["EV"] = Param_EV
