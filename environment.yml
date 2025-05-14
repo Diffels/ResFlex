@@ -1,4 +1,4 @@
-name: ULG_flex_residential_load
+name: ResFlex
 
 dependencies:
   - python=3.11

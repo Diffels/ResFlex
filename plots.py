@@ -1,78 +1,89 @@
-# -*- coding: utf-8 -*-
-"""
-Imported from load-shifting:
-    https://github.com/pielube/loadshifting
-    (Sylvain Quoilin)
-    
-Modified by duchmax
-August 2024
-"""
-
-# Import required modules
 import plotly.graph_objects as go
-from constant import defaultcolors, StaticLoad
+import matplotlib.pyplot as plt
 
-
-def make_demand_plot(idx,data,PV = None,title='Consumption', NB_Scenario = 1):
-    '''
-    Use of plotly to generate a stacked consumption plot, on local server.
-
-    Parameters
-    ----------
-    idx : DateTime
-        Index of the time period to be plotted.
-    data : pandas.DataFrame
-        Dataframe with the columns to be plotted. Its index should include idx.
-    title : str, optional
-        Title of the plot. The default is 'Consumption'.
-
-    Returns
-    -------
-    Plotly figure.
-
-    '''
-    
+def plot_P(df):    
     fig = go.Figure()
-    Base = list(set(data.columns) & set(StaticLoad))
-    data["Base Load"] = data[Base].sum(axis=1)
-    data = data.drop(columns=Base)
-    cols = data.columns.tolist()
-    if 'BatteryGeneration' in cols:
-        cols.remove('BatteryGeneration')
+    x = df.index
+    cols = df.columns.tolist()
 
-    if PV is not None:
-        fig.add_trace(go.Scatter(
-                name = 'PV geneartion',
-                x = idx,
-                y = PV.loc[idx],
-                stackgroup='three',
-                fillcolor='rgba(255, 255, 126,0.5)',
-                mode='none'               # this remove the lines
-                          ))        
-    if 'Heating' in cols:
-        fig.add_trace(go.Scatter(
-            name='Heating',
-            x=idx,
-            y=data.loc[idx, 'Heating'],
-            stackgroup='one',
-            fillcolor='rgba(255, 0, 0, 0.5)', 
-            mode='none'  
-            ))
-        cols.remove('Heating')  # Remove 'Heating' after adding it to the plot
-
-    for key in cols:
+    for idx, key in enumerate(cols):
         fig.add_trace(go.Scatter(
             name = key,
-            x = idx,
-            y = data.loc[idx,key],
+            x = x,
+            y = df.loc[x,key],
             stackgroup='one',
-            fillcolor = defaultcolors[key],
-            mode='none'               # this remove the lines
+            mode='none'          
            ))
 
-    fig.update_layout(title = title,
-                      xaxis_title = r'Dates',
-                      yaxis_title = r'Power [W]'
+    fig.update_layout(title = "Demand for the household",
+                      xaxis_title = r'Time',
+                      yaxis_title = r'Power [kW]'
                       )
     fig.show()
     return fig
+
+
+def plot_EV(SOC, occupancy, load_profile, EV_refilled):
+    fig = go.Figure()
+
+    # Plot SOC
+    fig.add_trace(go.Scatter(
+        y=SOC,
+        mode='lines',
+        name='SOC (%)',
+        line=dict(color='blue')
+    ))
+
+    # Plot occupancy
+    fig.add_trace(go.Scatter(
+        y=occupancy,
+        mode='lines',
+        name='Occupancy',
+        line=dict(color='green')
+    ))
+
+    # Plot load profile
+    fig.add_trace(go.Scatter(
+        y=load_profile,
+        mode='lines',
+        name='Load (kW)',
+        line=dict(color='orange')
+    ))
+
+    # Plot EV_refilled
+    fig.add_trace(go.Scatter(
+        y=EV_refilled,
+        mode='lines',
+        name='EV Refilled',
+        line=dict(color='purple', dash='dash')
+    ))
+
+    fig.update_layout(
+        title="EV Metrics Over Time",
+        xaxis_title="Time [min]",
+        yaxis_title="Values",
+        legend_title="Metrics",
+        template="plotly_white"
+    )
+
+    fig.show()
+    return fig
+
+
+def plot_heating(T, T_wall, T_set, T_out, P_HP):
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(y=T, mode='lines', name='Indoor Temperature'))
+    fig.add_trace(go.Scatter(y=T_wall, mode='lines', name='Wall Temperature'))
+    fig.add_trace(go.Scatter(y=T_set[:len(T)], mode='lines', name='Setpoint Temperature'))
+    fig.add_trace(go.Scatter(y=T_out[:len(T)], mode='lines', name='Outdoor Temperature'))
+    fig.add_trace(go.Scatter(y=P_HP/400, mode='lines', name='HP Power'))
+    fig.update_layout(
+        title="Temperature Dynamics",
+        xaxis_title="Time Steps",
+        yaxis_title="Temperature (C)",
+        legend_title="Legend",
+        template="plotly"
+    )
+
+    fig.show()

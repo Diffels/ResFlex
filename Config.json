@@ -1,5 +1,6 @@
 {  
-    "nb_days": 30,
+    "nb_days": 31,
+    "timestep": 15,
     "year": 2024,
     "country": "BE",                     
     "nb_households": 1,                
@@ -7,7 +8,7 @@
     "flex_mode": true,               
     "flex_rate": 4,
     "plot":true,
-    "plot_ts": 10,                         
+    "plot_ts": 1,                         
                
     "appliances": {
         "WashingMachine": 0.65,

@@ -254,21 +254,21 @@ class Household(object):
             # and then keep simulating a day until True
             while daycheck == False:
                 # set start state conditions
-                tbin = 0
-                occs = np.zeros(144, dtype=int)
+                tmin = 0
+                occs = np.zeros(24*60, dtype=int)
                 occs[0] = start
                 # occupancy data from survey are given per 30 min, so we need to know in which of 48 bins to look for data:
-                t48 = np.array(sorted(list(range(1, 49)) * 3))
+                t48 = np.array(sorted(list(range(1, 49)) * 30))
                 dt = SA.duration(start, t48[0]) # get duration of current state at start time (4am)
                 # and loop sequentially transition and duration functions
-                while tbin < 143:
-                    tbin += 1
+                while tmin < 1439: # 1440 = 24h*60min
+                    tmin += 1
                     if dt == 0: # previous state duration has ended
-                        occs[tbin] = SA.transition(occs[tbin-1], t48[tbin]) # find most probable next state
-                        dt = SA.duration(occs[tbin], t48[tbin]) - 1 # restart duration counter for new state
+                        occs[tmin] = SA.transition(occs[tmin-1], t48[tmin]) # find most probable next state
+                        dt = 30*SA.duration(occs[tmin], t48[tmin]) - 1 # restart duration counter for new state
                         # -1 is necessary, as the occupancy state already started
                     else:
-                        occs[tbin] = occs[tbin - 1] # maintain current state
+                        occs[tmin] = occs[tmin - 1] # maintain current state
                         dt += -1 # count down duration of current state
                 # whereafer we control if this day is ok
                 daycheck = check(occs) # ----->>> The check is currently not effectively implemented, always TRUE! 
@@ -286,7 +286,7 @@ class Household(object):
             Merge the occupancy profiles of all household members to a single
             profile denoting the most active state of all members.
             '''
-            # scirpt ##########################################################
+
             # We start defining an array of correct length filled with the
             # least active state and loop to see if more-active people are
             # present at the depicted moment.
@@ -321,9 +321,9 @@ class Household(object):
         # and combine the weekly occupancy states for the entire year by
         # repeating them every week and correcting for the first day of year and stop time,
         # including for the merged occupancy.
-        bins = 144 # number of datapoints in one day
-        tstart = bins*(self.dow[0]) # need to sart on correct day of week
-        tstop = tstart + bins*(self.nday)+1 # need nday in total, plus one step (for IDEAS simulations)
+        mins = 1440 # number of datapoints in one day
+        tstart = mins*(self.dow[0]) # need to sart on correct day of week
+        tstop = tstart + mins*(self.nday)+1 # need nday in total, plus one step (for IDEAS simulations)
         occ_year = []
         for line in range(len(occ_week)):# per separate member
             #repeat week more than enough times (54), take days needed to have correct nday and start day

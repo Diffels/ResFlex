@@ -1,0 +1,40 @@
+{  
+    "nb_days": 31,
+    "timestep": 15,
+    "year": 2024,
+    "country": "BE",                  
+    "start_day": 0,
+    "flex_mode": true,               
+    "flex_rate": 4,
+    "plot":false,                      
+               
+    "appliances": {
+        "WashingMachine": 0.65,
+        "TumbleDryer": 0.6,
+        "DishWasher": 0.6,
+        "WasherDryer": 0.25
+    },               
+
+    "HotWater": true,
+    "HotWater_max_power": 3,
+
+    "EV_presence": true,          
+    "EV_size": "medium",
+    "EV_usage": "medium",
+    "EV_charger_power": 11, 
+    "EV_km_per_year": 15000,
+    
+    "dwelling_nb_compo":4,
+    "dwelling_member1":	"Random",
+    "dwelling_member2":	"Random",
+    "dwelling_member3":	"Random",
+    "dwelling_member4":	"Random",
+    "dwelling_member5":	"Random",
+    
+    "SpaceHeating": true,
+    "Year": "> 08",
+    "Size": 100,
+    "Floors": 2,
+    "P_th_nom": 10,
+    "COP": 3.5
+}

@@ -1,5 +1,6 @@
 import numpy as np
 import datetime as dt
+import pandas as pd
 
 
 def occ_reshape(occ: np.ndarray, ts: float)->np.ndarray:
@@ -22,6 +23,11 @@ def occ_reshape(occ: np.ndarray, ts: float)->np.ndarray:
     new_occ = np.where(np.isin(expanded_occ, [1, 2]), 1, 0)
     
     return new_occ
+
+def occ_reshape2(occ: np.ndarray, ts: float) -> np.ndarray: return np.where(np.isin(np.repeat(occ[:-1], ts), [1, 2]), 1, 0)
+
+def index_to_datetime2(df, year, ts): return df.set_index(pd.date_range(start=dt.datetime(year, 1, 1), periods=len(df), freq='T')).resample(f'{ts}min').mean()
+
 
 def index_to_datetime(df, year, ts):
     '''

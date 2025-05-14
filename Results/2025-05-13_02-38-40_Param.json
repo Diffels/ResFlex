@@ -1,0 +1,12 @@
+{
+    "P_nom": 10,
+    "U_tot": 223.16,
+    "C_env": 19146900.0,
+    "C_air": 307781.25,
+    "T_initial": 14,
+    "T_final": 60,
+    "efficiency": 0.9,
+    "specific_heat": 4186,
+    "rho": 1,
+    "Charger": 11
+}

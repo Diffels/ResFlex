@@ -6,6 +6,7 @@ Purpose: This script contains the function that computes the hot water consumpti
 """
 
 import numpy as np
+import pandas as pd
 import datetime as dt
 
 
@@ -48,7 +49,7 @@ def limit_power(power_per_time, max_power):
         print(f'{over_power/60e3} kWh of hot water energy should be added next day')
     return power_per_time
 
-def hot_water_elec_consumption(mDHW, year, max_power=3):
+def water_boiler(mDHW, year, max_power=3):
     """
     This function takes as arguments the dataframe containing the hot water consumption for each time 
     step of the simulation and the maximal power that could be delivered by the electrical boiler.
@@ -76,4 +77,6 @@ def hot_water_elec_consumption(mDHW, year, max_power=3):
     mDHW['DateTime'] = dates
     mDHW = mDHW.set_index('DateTime')
     """daily_consumption = mDHW.resample('D').sum().reset_index()"""
-    return mDHW['Power_limited'][:-1]
+    Flex_WB = pd.DataFrame({'Power': mDHW['Power'][:-1], 'Power_limited': mDHW['Power_limited'][:-1]})
+    Param_WB = {'T_initial': T_initial, 'T_final': T_final, 'efficiency': efficiency, 'specific_heat': specific_heat, 'rho': rho}
+    return mDHW['Power_limited'][:-1], Flex_WB, Param_WB

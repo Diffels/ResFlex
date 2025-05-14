@@ -1,19 +1,8 @@
-# -*- coding: utf-8 -*-
-"""
-@author: duchmax
-
-Imported from Strobe lib. 
-    
-August 2024
-"""
-
-# Import require modules
 import os
 import sys
 import random
 strobeDir = os.path.dirname(os.path.realpath(__file__)) # get path where this file is (StROBe path)
 sys.path.append(os.path.join(strobeDir, 'StROBe/Corpus'))
-
 os.chdir(os.path.join(strobeDir, 'StROBe/Corpus'))
 import numpy as np
 from StROBe.Corpus.residential import Household, Equipment
@@ -21,9 +10,10 @@ import StROBe.Corpus.stats as stats
 import StROBe.Corpus.data as data
 from StROBe.Data.Appliances import set_appliances
 from StROBe.Data.Households import households
-from constant import special_appliances
 import itertools
 import pandas as pd
+special_appliances = ['DishWasher','WasherDryer','TumbleDryer','WashingMachine', 'EVCharging']
+StaticLoad = [x for x in set_appliances if (set_appliances[x]['type'] == 'appliance' and x not in special_appliances)]
 
 
 class Household_mod(Household):  
@@ -344,11 +334,12 @@ class Household_mod(Household):
     def roundUp(self):
         '''
         Round the simulation by wrapping all data and reduce storage size.
-        Also shift the data to start at Midnight instead of 4 AM (last 4h brought to the front)
+        Also shift the data to start at Midnight instead of 4 AM (last 4h brought to the front).
+        Keeps all data in 1-minute resolution.
         '''
 
         #######################################################################
-        # first we move and sumarize data to the most upper level.
+        # first we move and summarize data to the most upper level.
         self.sh_day = self.sh_settings['dayzone']
         self.sh_night = self.sh_settings['nightzone']
         self.sh_bath = self.sh_settings['bathroom']
@@ -357,38 +348,40 @@ class Household_mod(Household):
         self.QRad = self.r_receptacles['QRad'] + self.r_lighting['QRad']
         self.QCon = self.r_receptacles['QCon'] + self.r_lighting['QCon']
         self.mDHW = self.r_flows['mDHW']
-        self.dow = self.dow[1] # only first day of year is interensting to keep (skip initiation day(index=0))
+        self.dow = self.dow[1]  # only first day of year is interesting to keep (skip initiation day(index=0))
         
         #######################################################################        
-        # delete first 20h and last 4 h  so that data starts and ends at midnight
-        # keep an extra time step for IDEAS simulations 
-        # (we assume first value indicates average occupancy, P, etc from time 0 to time 0+time step)
-        self.nday=self.nday-1 # change back to originally asked number (remove extra initiation day)
-        start=20*60 # start minute, after 20h -> midnight of initiation day
-        stop=start + self.nday*24*60 # end minute, 4h before end of last day -> midnight 
-        
-        self.occ_m = self.occ_m[0][start//10:stop//10+1] # 10-min resolution, so for indeces: devide start & stop by 10.
-        self.occ=[i[start//10:stop//10+1] for i in self.occ] 
+        # delete first 20h and last 4h so that data starts and ends at midnight
+        # keep all data in 1-minute resolution
+        self.nday = self.nday - 1  # change back to originally asked number (remove extra initiation day)
+        start = 20 * 60  # start minute, after 20h -> midnight of initiation day
+        stop = start + self.nday * 24 * 60  # end minute, 4h before end of last day -> midnight 
+        self.occ_m = self.occ_m[0][start:stop + 1]  # 1-min resolution
+        self.occ = [i[start:stop + 1] for i in self.occ]
     
-        self.sh_day = self.sh_day[start//10:stop//10+1]
-        self.sh_night = self.sh_night[start//10:stop//10+1]
-        self.sh_bath = self.sh_bath[start//10:stop//10+1]
-        self.P = self.P[start:stop+1] #1-min data, and one extra step
-        self.Q = self.Q[start:stop+1]
-        self.QRad = self.QRad[start:stop+1]
-        self.QCon = self.QCon[start:stop+1]
-        self.mDHW = self.mDHW[start:stop+1]
+        self.sh_day = self.sh_day[start:stop + 1]
+        self.sh_night = self.sh_night[start:stop + 1]
+        self.sh_bath = self.sh_bath[start:stop + 1]
+        self.P = self.P[start:stop + 1]  # 1-min data, and one extra step
+        self.Q = self.Q[start:stop + 1]
+        self.QRad = self.QRad[start:stop + 1]
+        self.QCon = self.QCon[start:stop + 1]
+        self.mDHW = self.mDHW[start:stop + 1]
         appliances_cons = self.app_consumption
         
         new_appliance = dict()
-        for key,value in appliances_cons.items():
-            new_appliance.update({key : value[start:stop+1]})
+        for key, value in appliances_cons.items():
+            new_appliance.update({key: value[start:stop + 1]})
         del self.app_consumption
+        df_P = pd.DataFrame(new_appliance)
+        StaticLoad_pres = [col for col in StaticLoad if col in df_P.columns]
+        df_P.loc[:, 'BaseLoad'] = df_P[StaticLoad_pres].sum(axis=1)
+        df_P = df_P.drop(columns=StaticLoad_pres)
+        df_P = df_P.iloc[:-1]
 
-        app = pd.DataFrame(new_appliance)
-        new_appliance = app.drop(index = len(app)-1)
-        self.app_consumption  = new_appliance
-
+        #app = pd.DataFrame(new_appliance)
+        self.app_consumption = df_P
+        
         #######################################################################
         # then we delete the old data structure to save space
         del self.sh_settings

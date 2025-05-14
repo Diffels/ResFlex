@@ -1,14 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-@authors: noedi
-    
-September 2024
-"""
-
 # Import required modules
-from load_profiles import simulate
+from Simulate import simulate_one
 import os
 if __name__ == '__main__':
-    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Config.json")
-    simulate(path, disp=True)
-    
+    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "input_solo.json")
+    simulate_one(path, disp=True)
