@@ -32,7 +32,7 @@ def prob_charge_notHome_fun(E_journey, E_leaving):
     return P
     
 
-def EV_occ_daily_profile(EV_cons: np.ndarray[Any, np.dtype[np.float_]], full_occupancy: np.ndarray[Any, np.dtype[np.bool_]], Driver: object, charger_power: float, SOC_init=0.9, disp=False):
+def EV_occ_daily_profile(EV_cons: np.ndarray[Any, np.dtype[np.float64]], full_occupancy: np.ndarray[Any, np.dtype[np.bool_]], Driver: object, charger_power: float, SOC_init=0.9, disp=False):
     '''
     Function returning an array containing daily profile which splits the stochastic
     EV capacities given by EV_stochastic.py according to a occupancy profile input.
@@ -44,7 +44,8 @@ def EV_occ_daily_profile(EV_cons: np.ndarray[Any, np.dtype[np.float_]], full_occ
         - disp (boolean): To get information displayed on the console.
     Outputs:
         - SOC_profile (float np.array [0.0; 1.0]): State of charge profile during the day.
-        - charging_profile (boolean np.array): EV plugging profile. (1: Plugged; 0: Not plugged)
+        - charging_profile (boolean np.array): EV plugging profile. (1: charging; 0: Not plugged)
+        - plugged (boolean np.array): EV plugged profile. (1: plugged; 0: Not plugged)
         - EV_refilled (float np.array [0.0; 1.0]): Indicate if a charging event outside home occurs.
                                                   (Only for graphical representation, no physical interpretation.)
     '''
@@ -72,6 +73,7 @@ def EV_occ_daily_profile(EV_cons: np.ndarray[Any, np.dtype[np.float_]], full_occ
     list_SOC_profile=np.zeros(len(EV_cons)*minPerDay)
     list_charging_profile=np.zeros(len(EV_cons)*minPerDay)
     list_EV_refilled=np.zeros(len(EV_cons)*minPerDay)
+    list_plugged=np.zeros(len(EV_cons)*minPerDay)
     
     SOC_beginning = SOC_init
     SOC_last=SOC_init
@@ -82,8 +84,9 @@ def EV_occ_daily_profile(EV_cons: np.ndarray[Any, np.dtype[np.float_]], full_occ
 
         occupancy = full_occupancy[iteration*minPerDay:minPerDay*(iteration+1)]
         SOC_profile = np.full(minPerDay, SOC_beginning) # Time Series of SOC filled with init value
-        charging_profile = np.zeros(minPerDay) # Binary Time Series describing when EV is plugged.
+        charging_profile = np.zeros(minPerDay) # Binary Time Series describing when EV is charging.
         EV_refilled=np.zeros(minPerDay) # Time Series recording if a battery re-filled occurs during a departure.
+        plugged = np.zeros(minPerDay) # Time Series recording if the EV is plugged in.
     
         # Dictionnary containg Time Steps where a departure occurs and associated durations
         departures={}
@@ -105,6 +108,7 @@ def EV_occ_daily_profile(EV_cons: np.ndarray[Any, np.dtype[np.float_]], full_occ
                 duration = i - leave
                 # Departures that last less than 10 min are considered to not use EV 
                 if duration >= 10:
+                    plugged[leave]=1
                     departures[leave] = [duration]
                     # Record the arrivals TS in an array
                     arrivals.append(i)
@@ -116,6 +120,7 @@ def EV_occ_daily_profile(EV_cons: np.ndarray[Any, np.dtype[np.float_]], full_occ
         fully_charged=False
         for i in range(1, len(occupancy)):
             if not occupancy[i]: # Not at home
+                plugged[i]=0
                 if i in departures.keys(): # Event departure
                     fully_charged=False
     
@@ -166,6 +171,7 @@ def EV_occ_daily_profile(EV_cons: np.ndarray[Any, np.dtype[np.float_]], full_occ
                 SOC_profile[i]=0
                 
             else: # Is at home
+                plugged[i]=1
                 if i in arrivals: # Event arrival: EV is coming home
                     # Update SOC with discharge from previous journey
                     SOC_i = SOC_last - E_spent/battery_cap
@@ -194,11 +200,12 @@ def EV_occ_daily_profile(EV_cons: np.ndarray[Any, np.dtype[np.float_]], full_occ
         list_SOC_profile[iteration*minPerDay:minPerDay*(iteration+1)]=SOC_profile
         list_charging_profile[iteration*minPerDay:minPerDay*(iteration+1)]=charging_profile
         list_EV_refilled[iteration*minPerDay:minPerDay*(iteration+1)]=EV_refilled
+        list_plugged[iteration*minPerDay:minPerDay*(iteration+1)]=plugged
         
         # Setting up de first SOC of next day.
         SOC_beginning = SOC_profile[-1]
     
     load_profile = np.multiply(list_charging_profile, charger_power)
     
-    return (list_SOC_profile, list_charging_profile, list_EV_refilled, load_profile)     
+    return (list_SOC_profile, list_charging_profile, list_EV_refilled, load_profile, list_plugged)     
     

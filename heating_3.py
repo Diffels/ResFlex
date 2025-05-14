@@ -9,7 +9,7 @@ from dataclasses import dataclass
 # Find the path to this file
 file_path = os.path.dirname(os.path.realpath(__file__)) 
 # Create an absolute path to the Excel file 'Meteo2022_Liege.xlsx'
-weather_path = os.path.join(file_path, 'database\Meteo2022_Liege.xlsx')
+weather_path = os.path.join(file_path, 'database/Meteo2022_Liege.xlsx')
 
 @dataclass
 class Material:

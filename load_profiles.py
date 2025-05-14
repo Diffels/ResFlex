@@ -22,6 +22,7 @@ import json
 import xarray as xr
 from constant import StaticLoad
 
+dir_path=os.path.dirname(os.path.realpath(__file__))
 
 def get_profiles(config, dwelling_compo):
     '''
@@ -77,14 +78,23 @@ def get_profiles(config, dwelling_compo):
             powers=[3.7, 7.4, 11, 22] #kW
             config['EV_charger_power'] =  np.random.choice(powers, p=config['prob_EV_charger_power'])
             # Running EV module
-            load_profile, n_charge_not_home =EV_run(occupancy,config)
+            load_profile, n_charge_not_home, EVplug = EV_run(occupancy,config)
             EV_profile = pd.DataFrame({'EVCharging':load_profile})
+            dfEVplug = pd.DataFrame({'is_plug':EVplug})
             # EV_flex = pd.DataFrame({'EVCharging':load_profile, 'Occupancy':occupancy})
 
             if 'EVCharging' not in df.columns:
                 df['EVCharging'] =  EV_profile*1000
             else :
                 df['EVCharging'] = df['EVCharging'] + EV_profile['EVCharging']*1000
+
+            df['EVCharging'].to_csv(dir_path + "/EV_profile.csv", index=False)
+            print("EV profile saved at ", dir_path + "/EV_profile.csv")
+            dfEVplug.to_csv(dir_path + "/EV_plug.csv", index=False)
+            print("EV plug profile saved at ", dir_path + "/EV_plug.csv")
+            pd.DataFrame({'Occupancy': occupancy}).to_csv(dir_path + "/occupancy.csv", index=False)
+            print("Occupancy profile saved at ", dir_path + "/occupancy.csv")
+
         #------------------------------
 
         #---Flexibility -------------

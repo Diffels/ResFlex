@@ -48,7 +48,7 @@ def EV_run(occupancy: np.ndarray[Any, np.dtype[np.bool_]], config: dict, plot=Tr
 
     EV_cons, EV_dist, EV_time = EV_stoch_cons(Driver, nb_days, year=year, country=country, start_day=start_day)
 
-    SOC, bin_charg, EV_refilled, load_profile = EV_occ_daily_profile(EV_cons, occupancy, Driver, charger_pow, SOC_init=0.9)
+    SOC, bin_charg, EV_refilled, load_profile, EVplug = EV_occ_daily_profile(EV_cons, occupancy, Driver, charger_pow, SOC_init=0.9)
     n_charge_not_home = np.count_nonzero(EV_refilled)
 
     #df_load_profile.to_excel('EV_load_profile.xlsx', index=False)
@@ -84,5 +84,5 @@ def EV_run(occupancy: np.ndarray[Any, np.dtype[np.bool_]], config: dict, plot=Tr
         plt.savefig(full_path)
         plt.close()
 
-    return load_profile, n_charge_not_home
+    return load_profile, n_charge_not_home, EVplug
     
