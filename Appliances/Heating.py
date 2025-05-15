@@ -149,7 +149,7 @@ def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom=8000):
 
 def space_heating(T_set, sim_days, start_day, year, size, floors, P_nom):
     house = House.generate(year, size, floors)
-    T_out, P_irr = weather_import(house, os.path.dirname(__file__)+'\database\Meteo2022_Liege.xlsx')  # External temperature and Solar irradiation series
+    T_out, P_irr = weather_import(house, os.path.join(os.path.dirname(__file__), 'database', 'Meteo2022_Liege.xlsx'))  # External temperature and Solar irradiation series
     T_out = T_out[start_day*24*60:(start_day+sim_days)*24*60]  # Crop the time series to the simulation period
     P_irr = P_irr[start_day*24*60:(start_day+sim_days)*24*60]  
     # Simulate heating system 

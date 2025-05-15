@@ -24,7 +24,7 @@ def get_clusters(employment, **kwargs):
     for key in keys:
         order = ['U12','FTE','PTE','Unemployed','Retired','School']
         emp_i = order.index(employment)
-        data = np.loadtxt(os.path.dirname(__file__)+'\Data\Aerts_Occupancy\Crosstables\Crosstable_Employment_'+key+'.txt', float).T[emp_i]
+        data = np.loadtxt(os.path.join(os.path.dirname(__file__), 'Data', 'Aerts_Occupancy', 'Crosstables', f'Crosstable_Employment_{key}.txt'), float).T[emp_i]
         rnd = np.random.random()
         cluster = stats.get_probability(rnd, data, p_type='prob')
         cluDict.update({key:cluster})
@@ -39,13 +39,13 @@ def get_occDict(cluster, **kwargs):
     and stored in 'StROBe/Data/Aerts_Occupancy'.
     '''
     #first set the the correct location
-    PATH =  '\Data\Aerts_Occupancy\Pattern' + str(cluster)
+    PATH = os.path.join('Data', 'Aerts_Occupancy', 'Pattern' + str(cluster))
     # create an empty dictionary
     occDict = dict()
     ##########################################################################
     # first we load the occupancy start states 'ss' from StartStates.txt
     ss = dict()
-    data = np.loadtxt(os.path.dirname(__file__)+PATH+'\StartStates.txt', float)
+    data = np.loadtxt(os.path.join(os.path.dirname(__file__), PATH, 'StartStates.txt'), float)
     for i in range(len(data)):
         ss.update({str(i+1):data[i]})
     # and add the 'ss' data to the occupancy dictionary
@@ -53,7 +53,7 @@ def get_occDict(cluster, **kwargs):
     ##########################################################################
     # Second we load the occupancy transitions state probabilities 'os'
     # from TransitionProbability.txt
-    data = np.loadtxt(os.path.dirname(__file__)+PATH+'\TransitionProbability.txt', float)
+    data = np.loadtxt(os.path.join(os.path.dirname(__file__), PATH, 'TransitionProbability.txt'), float)
     for i in range(3):
         os_i = dict()
         for j in range(48):
@@ -62,7 +62,7 @@ def get_occDict(cluster, **kwargs):
         occDict.update({'os_'+str(i+1):os_i})
     ##########################################################################
     # Third we load the Markov time density 'ol' from DurationProbability.txt
-    data = np.loadtxt(os.path.dirname(__file__)+PATH+'\DurationProbability.txt', float)
+    data = np.loadtxt(os.path.join(os.path.dirname(__file__), PATH, 'DurationProbability.txt'), float)
     for i in range(3):
         ol_i = dict()
         for j in range(48):
@@ -88,7 +88,7 @@ def get_actDict(cluster, **kwargs):
     ##########################################################################
     # Second we load the activity proclivity functions
     # from Patter*cluster*.txt
-    FILNAM = os.path.dirname(__file__)+'\Data\Aerts_Activities\Pattern'+str(cluster)+'.txt'
+    FILNAM = os.path.join(os.path.dirname(__file__), 'Data', 'Aerts_Activities', f'Pattern{cluster}.txt')
     data = np.loadtxt(FILNAM, float)
     for i in range(10):
         actDict.update({act[i]:data.T[i]})
