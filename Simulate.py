@@ -55,7 +55,6 @@ def one_profile(config):
         - dic_Param (dict): Dictionary containing fixed parameters for the household.
     '''
     
-
     start_time = time.time()
 
     #---Household creation (Base Load and indices) -------------
