@@ -1,0 +1,45 @@
+{  
+    "nb_days": 31,
+    "timestep": 15,
+    "year": 2024,                  
+    "start_day": 0,
+    "flexibility": true,                     
+               
+    "appliances": {
+        "WashingMachine": 0.65,
+        "TumbleDryer": 0.6,
+        "DishWasher": 0.6,
+        "WasherDryer": 0.25
+    },               
+
+    "HotWater": true,
+    "HotWater_data": {
+        "Pmax":3,
+        "Volume": 200,
+        "Tset": 60
+    },
+
+    "EV": true,          
+    "EV_data": {
+        "Consumption": 20, 
+        "Capacity": 60,
+        "Pmax": 11,
+        "eta": 0.95, 
+        "SoC_target": 0.80,
+        "Usage": 15000}, 
+
+    "SpaceHeating": true,
+    "SpaceHeating_data": {
+        "Year": 2009,
+        "Size": 100,
+        "Floors": 2,
+        "P_th_nom": 10,
+        "COP": 3.5
+    },
+    
+    "inhabitants":4,
+    "occupations":	["Random",
+    "Random",
+    "Random",
+    "Random"]   
+}
