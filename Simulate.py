@@ -104,6 +104,7 @@ def simulate_all(file_path, plot=False, disp=True):
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), f"Results/Multiple/{current_time}.xlsx")
     flex_filename = filename.replace('.xlsx', '_Flex.xlsx')
+
     with pd.ExcelWriter(filename) as writer, pd.ExcelWriter(flex_filename) as flex_writer:
         for u in range(config['nb_households']):
             print(f"Simulating house {u+1}/{config['nb_households']}")
@@ -141,7 +142,6 @@ def simulate_one(file_path, plot=False, disp=True):
 
     df_P, df_Flex, dic_Param = one_profile(config)
     # Write df_P to a CSV file with the current date and time in the filename
-    
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     csv_filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), f"Results/Single/{current_time}.csv")
     df_P.to_csv(csv_filename, index=True)
@@ -162,9 +162,6 @@ def simulate_one(file_path, plot=False, disp=True):
         plot_P(df_P)#, title=f"Load profile for {config['nb_households']} households, for {config['nb_days']} days.")
         plot_EV(df_Flex['EVCharging'], df_Flex['Occupancy'], df_Flex['Load'], df_Flex['EV_refilled'])
         
-
-
-
 def one_profile(config):
     '''
     Function that computes the different load profiles.
@@ -178,7 +175,6 @@ def one_profile(config):
         - dic_Param (dict): Dictionary containing fixed parameters for the household.
     '''
     
-
     start_time = time.time()
     start_date = datetime(2024, 1, 1) + pd.Timedelta(days=config["start_day"])
     end_date = start_date + pd.Timedelta(days=config["nb_days"])
@@ -224,8 +220,8 @@ def one_profile(config):
         EV_occ = np.where(np.isin(family.occ_m, [1, 2]), 1, 0)
         # Running EV module
         P_EV, Flex_EV, Param_EV = EV_run(EV_occ,config)
-        # EV_flex = pd.DataFrame({'EVCharging':load_profile, 'Occupancy':occupancy})
-        df_P['EVCharging'] =  P_EV
+        df_P['EVCharging'] =  P_EV.tolist()
+        Flex_EV.index = df_Flex.index
         df_Flex = pd.concat([df_Flex, Flex_EV], axis=1)
         dic_Param["EV"] = Param_EV
     #------------------------------

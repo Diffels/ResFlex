@@ -69,13 +69,13 @@ def water_boiler(mDHW, year, max_power=3):
     mDHW['Power_limited'] = limit_power(mDHW['Power'], limited_Boiler_power)
 
    
-    init_date = dt.datetime(year, 1,1,0,0)
-    dates = []
+    # init_date = dt.datetime(year, 1,1,0,0)
+    # dates = []
 
-    for i in range(len(mDHW)):
-        dates.append(init_date+dt.timedelta(minutes=i))
-    mDHW['DateTime'] = dates
-    mDHW = mDHW.set_index('DateTime')
+    # for i in range(len(mDHW)):
+    #     dates.append(init_date+dt.timedelta(minutes=i))
+    # mDHW['DateTime'] = dates
+    # mDHW = mDHW.set_index('DateTime')
     """daily_consumption = mDHW.resample('D').sum().reset_index()"""
     Flex_WB = pd.DataFrame({'Power': mDHW['Power'][:-1], 'Power_limited': mDHW['Power_limited'][:-1]})
     Param_WB = {'T_initial': T_initial, 'T_final': T_final, 'efficiency': efficiency, 'specific_heat': specific_heat, 'rho': rho}

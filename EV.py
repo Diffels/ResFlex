@@ -1,8 +1,7 @@
-22# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 @author: noedi
-    
-August 2024
+May 2025
 """
 
 # Import required modules
@@ -13,11 +12,17 @@ from datetime import datetime
 import random
 from plots import plot_EV
 
-
-
 def EV_run(occupancy: np.ndarray[Any, np.dtype[np.bool_]], config: dict, plot: bool = False)-> pd.DataFrame:
     '''
-    
+    Compute the EV load profile for a given occupancy profile and configuration file.
+    Inputs:
+        - occupancy: occupancy profile of the driver (1 if at home, 0 if not).
+        - config: configuration file containing the parameters for the simulation.
+        - plot: boolean indicating whether to plot the results or not.
+    Outputs:
+        - EV_profile: EV load profile for the household.
+        - Flex_EV: DataFrame containing the EV load profile.
+        - Param_EV: parameters of the EV model.
     '''         
     year = config["year"]
     start_day = config["start_day"]
@@ -49,27 +54,27 @@ def EV_run(occupancy: np.ndarray[Any, np.dtype[np.bool_]], config: dict, plot: b
         soc_init = last_soc # SOC at the end of the day
 
     Param_EV = config['EV_data']
-
     Flex_EV = pd.DataFrame(isplug, columns=['Flex_EV'], index=None)   
-    init_date = datetime(year,1,1,0,0)
-    dates = []
-    for i in range(len(isplug)):
-        dates.append(init_date+pd.Timedelta(minutes=i))
-    Flex_EV['DateTime'] = dates
-    Flex_EV = Flex_EV.set_index('DateTime')
 
-    #if plot:
-    #    plot_EV(SOC_profile, occupancy, EV_profile, EV_refilled)
+    if plot:
+       plot_EV(SOC_profile, occupancy, EV_profile, EV_refilled)
 
     return EV_profile, Flex_EV, Param_EV
 
-
 def EV_daily_kwh(yearly_km: int, consumption: int, type_day: str)->float:
     '''
-    Handle 
+    Function to compute the stochastic daily energy consumption of the EV based on 
+    the yearly km, the consumption in kWh/100km and the type of day (weekday/weekend).
+    Inputs:
+        - yearly_km: average yearly km driven by the EV.
+        - consumption: consumption of the EV in kWh/100km.
+        - type_day: type of day (weekday/weekend).
+    Outputs:
+        - rand_kwh: random daily energy consumption of the EV in kWh. 
     '''
-    r_d=0.3 #random in distance
-    r_cons= 0.3 #random in consumption
+    # Tunable Parameters
+    r_d=0.3 # Random distance variation
+    r_cons= 0.3 # Random consumption variation
 
     # Daily km based on the type of day (-7% for weekdays, +17.5% for weekends), approx. 25% difference.
     daily_km = yearly_km / 365
@@ -88,7 +93,7 @@ def EV_daily_kwh(yearly_km: int, consumption: int, type_day: str)->float:
 
 def type_of_day(year: int, start_day: int, curr_day: int) -> str:
     '''
-    Function to determine the type of day (weekday, weekend) based on the configuration file.
+    Function to determine the type of day (weekday, weekend) based on the date.
     '''
     current_date = datetime(year, 1, 1) + pd.Timedelta(days=start_day + curr_day - 1) 
     weekday = current_date.weekday()  # Monday = 0, Saturday = 5, Sunday = 6
@@ -107,7 +112,7 @@ def prob_charge_not_home(E_journey, E_leaving):
     Outputs:
         - P: Probability of a charging event, outside the home. [-]
     '''
-    r = 3 * E_journey/E_leaving
+    r = E_journey/E_leaving
     if r > 1.0: # If journey requires more energy than available, charge mandatory.
         P = 1.0
     elif r < 0.05: # Short journeys do not require charge.
@@ -118,16 +123,30 @@ def prob_charge_not_home(E_journey, E_leaving):
     
 def EV_daily_profile(stoch_kwh: float, occupancy: np.ndarray[Any, np.dtype[np.bool_]], battery_cap: int, charger_power: float, eta: float, SOC_max: float, SOC_init: float, SOC_min: float = 0.1):
     '''
-
+    Function to compute the EV daily load profile for a given occupancy profile, a stochastic consumption in kWh, and EV parameters.
+    Inputs:
+        - stoch_kwh: stochastic daily energy consumption of the EV in kWh.
+        - occupancy: occupancy profile of the driver (1 if at home, 0 if not).
+        - battery_cap: capacity of the EV battery in kWh.
+        - charger_power: power of the EV charger in kW.
+        - eta: efficiency of the EV charger.
+        - SOC_max: maximum state of charge of the EV battery.
+        - SOC_init: initial state of charge of the EV battery.
+        - SOC_min: minimum state of charge of the EV battery.
+    Outputs:
+        - load_profile: EV load profile for the household.
+        - isplug: binary Time Series describing when EV is plugged.
+        - SOC_profile: state of charge of the EV battery at the end of the day.
+        - EV_refilled: Time Series showing the charge outside home, assumed instantaneous at the half of the departure event.
+        - SOC_profile: Time Series recording the state of charge of the EV (plot use only).
     '''
+    # Tunable Parameters
     r_ch_notHome = 0.30 # Time ratio of EV charging when not at home from whole daily departure duration.
     var_ch_not_home = 0.05 # Stochastic variation in charging time ratio defined above.
     var_split = 0.25 # Stochastic variation in Energy split between not home windows.
     tol_batt_lim = 0.5 # Tolerance according to battery limits (min/max SOCs) when charge/disch.
-
-    # The charge that occurs outside home is not always the same that home charger
     available_stations=[7.4, 11, 22, 50] # [kW], level 2 and 3 of EV chargers
-    prob_stations=[0.3, 0.35, 0.3, 0.05]
+    prob_stations=[0.3, 0.35, 0.3, 0.05] # The charge that occurs outside home is not always the same that home charger
     station_power = np.random.choice(available_stations, p=prob_stations)
     
     SOC_last=0

@@ -38,7 +38,7 @@ def plot_EV(SOC, occupancy, load_profile, EV_refilled):
     fig.add_trace(go.Scatter(
         y=occupancy,
         mode='lines',
-        name='Occupancy',
+        name='Driver Occupancy (-)',
         line=dict(color='green')
     ))
 
@@ -54,7 +54,7 @@ def plot_EV(SOC, occupancy, load_profile, EV_refilled):
     fig.add_trace(go.Scatter(
         y=EV_refilled,
         mode='lines',
-        name='EV Refilled',
+        name='EV Refilled (kWh)',
         line=dict(color='purple', dash='dash')
     ))
 
