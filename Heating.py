@@ -33,8 +33,13 @@ class House:
     @staticmethod
     def generate(year, surface, floors):
         """Generate a random house and assign thermal properties"""
-        # Datasets
-        if year not in ['< 45', '45-70', '70-90', '90-07', '> 08']: return KeyError(f"Year {year} not in dataset")
+        # Datasets are based on the year of construction
+        # The year of construction is a int, but we convert it to an string to match the keys of the dictionaries
+        if year < 1945: year = '< 45'
+        elif year < 1970: year = '45-70'
+        elif year < 1990: year = '70-90'
+        elif year < 2007: year = '90-07'
+        else: year = '> 08'
         # Raw Data taken from ProCEBaR (Task 2), presentation of the project: https://orbi.uliege.be/bitstream/2268/192397/2/160126_BERA_ULg.pdf
 
         # U-values expressed in W/(m².K)

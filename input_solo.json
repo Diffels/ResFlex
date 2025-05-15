@@ -1,12 +1,9 @@
 {  
     "nb_days": 31,
     "timestep": 15,
-    "year": 2024,
-    "country": "BE",                  
+    "year": 2024,                  
     "start_day": 0,
-    "flex_mode": true,               
-    "flex_rate": 4,
-    "plot":false,                      
+    "flexibility": true,                     
                
     "appliances": {
         "WashingMachine": 0.65,
@@ -16,25 +13,33 @@
     },               
 
     "HotWater": true,
-    "HotWater_max_power": 3,
+    "HotWater_data": {
+        "Pmax":3,
+        "Volume": 200,
+        "Tset": 60
+    },
 
-    "EV_presence": true,          
-    "EV_size": "medium",
-    "EV_usage": "medium",
-    "EV_charger_power": 11, 
-    "EV_km_per_year": 15000,
-    
-    "dwelling_nb_compo":4,
-    "dwelling_member1":	"Random",
-    "dwelling_member2":	"Random",
-    "dwelling_member3":	"Random",
-    "dwelling_member4":	"Random",
-    "dwelling_member5":	"Random",
-    
+    "EV": true,          
+    "EV_data": {
+        "Consumption": 20, 
+        "Capacity": 60,
+        "Pmax": 11,
+        "eta": 0.95, 
+        "SoC_target": 0.80,
+        "Usage": 15000}, 
+
     "SpaceHeating": true,
-    "Year": "> 08",
-    "Size": 100,
-    "Floors": 2,
-    "P_th_nom": 10,
-    "COP": 3.5
+    "SpaceHeating_data": {
+        "Year": 2009,
+        "Size": 100,
+        "Floors": 2,
+        "P_th_nom": 10,
+        "COP": 3.5
+    },
+    
+    "inhabitants":4,
+    "occupations":	["Random",
+    "Random",
+    "Random",
+    "Random"]   
 }

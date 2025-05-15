@@ -1,0 +1,24 @@
+{
+    "HP": {
+        "Pmax": 10,
+        "Utot": 201.8,
+        "Cenv": 19146900.0,
+        "Cair": 307781.25,
+        "COP": 3.5
+    },
+    "WB": {
+        "T_initial": 14,
+        "T_final": 60,
+        "efficiency": 0.9,
+        "specific_heat": 4186,
+        "rho": 1
+    },
+    "EV": {
+        "Consumption": 20,
+        "Capacity": 60,
+        "Pmax": 11,
+        "eta": 0.95,
+        "SoC_target": 0.8,
+        "Usage": 15000
+    }
+}

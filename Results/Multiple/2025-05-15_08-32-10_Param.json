@@ -1,0 +1,74 @@
+{
+    "House0": {
+        "HP": {
+            "Pmax": 10,
+            "Utot": 219.26,
+            "Cenv": 19146900.0,
+            "Cair": 307781.25,
+            "COP": 3
+        },
+        "WB": {
+            "T_initial": 14,
+            "T_final": 60,
+            "efficiency": 0.9,
+            "specific_heat": 4186,
+            "rho": 1
+        },
+        "EV": {
+            "Consumption": 20,
+            "Capacity": 60,
+            "Pmax": 11,
+            "eta": 0,
+            "SoC_target": 0,
+            "Usage": 15000
+        }
+    },
+    "House1": {
+        "HP": {
+            "Pmax": 10,
+            "Utot": 190.22,
+            "Cenv": 19146900.0,
+            "Cair": 307781.25,
+            "COP": 3
+        },
+        "WB": {
+            "T_initial": 14,
+            "T_final": 60,
+            "efficiency": 0.9,
+            "specific_heat": 4186,
+            "rho": 1
+        },
+        "EV": {
+            "Consumption": 20,
+            "Capacity": 60,
+            "Pmax": 11,
+            "eta": 0,
+            "SoC_target": 0,
+            "Usage": 15000
+        }
+    },
+    "House2": {
+        "HP": {
+            "Pmax": 10,
+            "Utot": 194.94,
+            "Cenv": 19146900.0,
+            "Cair": 307781.25,
+            "COP": 3
+        },
+        "WB": {
+            "T_initial": 14,
+            "T_final": 60,
+            "efficiency": 0.9,
+            "specific_heat": 4186,
+            "rho": 1
+        },
+        "EV": {
+            "Consumption": 20,
+            "Capacity": 60,
+            "Pmax": 11,
+            "eta": 0,
+            "SoC_target": 0,
+            "Usage": 15000
+        }
+    }
+}

@@ -5,177 +5,87 @@
 August 2024
 """
 
-# Import required modules
+# Import required libraries
 import os
 import pandas as pd
 import numpy as np
-from Household_mod import Household_mod
-from plots import plot_P
-from ramp_mobility.EV_run import electric_vehicle
-from Heating import space_heating
-#from utils import index_to_datetime, occ_reshape
-from Hot_water import water_boiler
 import time
-import random
 import json
-import xarray as xr
-from StROBe.Data.Appliances import set_appliances
 from datetime import datetime
-special_appliances = ['index','DishWasher','WasherDryer','TumbleDryer','WashingMachine', 'EVCharging']
-StaticLoad = [x for x in set_appliances if (set_appliances[x]['type'] == 'appliance' and x not in special_appliances)]
 
-def get_profiles(config, dwelling_compo):
-    '''
-    Function that computes the different load profiles.
+# Import custom modules
+from Household_mod import Household_mod
+from EV import EV_run
+from Heating import space_heating
+from Hot_water import water_boiler
+from plots import plot_P, plot_EV
 
-    Inputs:
-        - config (dict): Dictionnay that contains all the inputs defined in Config.xlsx
-        - dwelling_compo (list): Containing the dwelling composition.
-    
-    Outputs: 
-        - df (pd.DataFrame): Dataframe containing the results, ie for each time step, the consumption of each
-        appliance.
-        - times (np.ndarray): Execution time for each simulation.
-        - loads (np.ndarray): Total load during the simulation.
-    '''
-    times = np.zeros(config['nb_households'])
+def check_probas(fields, config):
+    for field in fields:
+        if sum(config[f'P_{field}']) != 1:
+            raise Exception(f"Error: {field} probability sum is not equal to 1.")
+        if len(config[f'{field}']) != len(config[f'P_{field}']):
+            raise Exception(f"Error: {field} probability length is not equal to the number of params.")
 
-    nminutes = config['nb_days'] * 1440 + 1
-    P = np.zeros((config['nb_households'], nminutes))
+def append_recurring(fields, list_param, config):
+    for i in list_param:
+        for field in fields:
+            i[field]= config[field]
+    return list_param
 
-    for i in range(config['nb_households']):
-        start_time = time.time()
+def append_appliances(list_param, config):
+    app_list = ['WashingMachine', 'DishWasher', 'TumbleDryer', 'WasherDryer']
+    values = [np.random.choice([0,1], size=config['nb_households'], p=[1-config['appliances'][f'P_{a}'], config['appliances'][f'P_{a}']]) for a in app_list]
+    for i, house in enumerate(list_param):
+        house['appliances'] = {}
+        for a, appliance in enumerate(app_list):
+            house['appliances'][appliance] = int(values[a][i])
+    return list_param
 
-        #---Household creation (Base Load) -------------
-        family = Household_mod(f"Scenario {i}", members=dwelling_compo, selected_appliances = config['appliances']) # print put in com 
-        family.simulate(year = config['year'], ndays = config['nb_days']) # print in com
-        df = pd.DataFrame(family.app_consumption)
-        #------------------------------
+def probas_to_list(appliance, field, config):
+    probas = config[f'{appliance}_data'][f'P_{field}']
+    values = config[f'{appliance}_data'][field]
+    return np.random.choice(values, size=config['nb_households'], p=probas)
 
-        #---Space Heating -------------
-        shsetting_data = family.sh_day
-        heating_consumption = space_heating(shsetting_data, config['nb_days'], config['start_day'])*1000 #return an array with powers in kW every 10min, times 1000 to have the results in Watts
-        heating_cons_duplicate = [elem for elem in heating_consumption for _ in range(10)]   # To go from 10 to 1 min time step
-        heating_cons_duplicate = pd.Series(heating_cons_duplicate)/4                         #divided by the COP of conventional heat pump 
-        df['Heating'] = df.get('Heating', 0) + heating_cons_duplicate
-        #------------------------------
+def append_family(list_param, config):
+    probas = config['P_inhabitants']
+    values = config['inhabitants']
+    family = np.random.choice(values, size=config['nb_households'], p=probas)
+    for i, house in enumerate(list_param):
+        house['family'] = int(family[i])
+        house['occupations'] = ['Random'] * family[i]
+    return list_param
 
-        #---Hot Water -------------
-        if config['HotWater']:
-            hot_water = water_boiler(pd.DataFrame({'mDHW':family.mDHW}), config['year'], config['HotWater_max_power'])
-            df['HotWater'] = hot_water.tolist()
-        #------------------------------
+def append_flexible(appliance, fields, list_param, config):
+    lists = {field: probas_to_list(appliance, field, config) for field in fields}
+    app = np.random.choice([1, 0], size=config['nb_households'], p=[config[f'P_{appliance}'], 1 - config[f'P_{appliance}']])
+    for i, house in enumerate(list_param):
+        house[appliance] = bool(app[i])
+        house[f'{appliance}_data'] = {}
+        for f in fields:
+            house[f'{appliance}_data'][f] = float(lists[f][i])
+    return list_param
 
-        #---EV -------------
-        if config['EV_presence'] >= random.random():
-            # Reshaping of occupancy profile 
-            occupancy = occ_reshape(family.occ_m, config['plot_ts'])
-            # Determining EV parameter:
-            sizes=['small', 'medium', 'large']
-            config['EV_size'] = np.random.choice(sizes, p=config['prob_EV_size'])
-            usages=['short', 'normal', 'long']
-            config['EV_usage'] =  np.random.choice(usages, p=config['prob_EV_size'])
-            powers=[3.7, 7.4, 11, 22] #kW
-            config['EV_charger_power'] =  np.random.choice(powers, p=config['prob_EV_charger_power'])
-            # Running EV module
-            load_profile, n_charge_not_home =electric_vehicle(occupancy,config)
-            EV_profile = pd.DataFrame({'EVCharging':load_profile})
-            # EV_flex = pd.DataFrame({'EVCharging':load_profile, 'Occupancy':occupancy})
+def get_list_param(config):
+    list_param = [{}] * config['nb_households']
+    list_param = append_recurring(['nb_days', 'timestep', 'year', 'start_day', 'flexibility'], list_param, config)
+    list_param = append_appliances(list_param, config)
+    list_param = append_flexible('SpaceHeating',['Year', 'Size', 'Floors','P_th_nom', 'COP'], list_param, config)
+    list_param = append_flexible('HotWater', ['Pmax', 'Volume', 'Tset'], list_param, config)
+    list_param = append_flexible('EV', ['Consumption', 'Capacity', 'Pmax', 'eta', 'SoC_target', 'Usage'], list_param, config)
+    list_param = append_family(list_param, config)
+    return list_param
 
-            if 'EVCharging' not in df.columns:
-                df['EVCharging'] =  EV_profile*1000
-            else :
-                df['EVCharging'] = df['EVCharging'] + EV_profile['EVCharging']*1000
-        #------------------------------
+def create_params(config):
+    #Check if the config file is valid
+    check_probas(['Year', 'Size', 'Floors','P_th_nom', 'COP'], config['SpaceHeating_data'])
+    check_probas(['Pmax', 'Volume', 'Tset'], config['HotWater_data'])
+    check_probas(['Consumption', 'Capacity', 'Pmax', 'eta', 'SoC_target', 'Usage'], config['EV_data'])
+    check_probas(['inhabitants'], config)
+    params = get_list_param(config)
+    return params
 
-        #---Flexibility -------------
-        if config['flex_mode']: 
-            pass
-            # flex_window = flexibility_window(df[config['appliances'].keys()], family.occ_m, config['flex_mode'], flexibility_rate= config['flex_rate'])
-        #------------------------------
-
-        
-        P[i,:] = family.P
-        end_time = time.time()
-        execution_time = end_time - start_time
-        times[i] = execution_time
-        print(f"Simulation {i+1}/{config['nb_households']} is done. Execution time: {execution_time} s.") 
-
-        df = index_to_datetime(df, config['year'],config['plot_ts'])
-        StaticLoad_pres = [col for col in StaticLoad if col in df.columns]
-        data=df.copy()
-        data.loc[:, 'Base Load'] = data[StaticLoad_pres].sum(axis=1)
-        data= data.drop(columns=StaticLoad_pres)
-
-        data_array = xr.DataArray(data, dims=['index', 'columns'], coords={'columns': data.columns}) 
-        if i == 0 :
-            dataset =  xr.Dataset({f'House {i}': data_array})
-        else :
-            dataset[f'House {i}'] = data_array
-    dataset.coords['index'] = data.index
-
-    P = np.array(P)
-    
-    total_elec = np.sum(P)
-    average_total_elec = total_elec/config['nb_households']
-    loads=average_total_elec.sum()/60/1000
-    
-    #df = df/config['nb_households']
-
-    df = index_to_datetime(df, config['year'],config['plot_ts'])
-    
-    return loads, times, dataset
-
-
-def simulate(file_path, disp=True):
-    '''
-    Simulation with a .json file.
-    Input:
-        - file (str): .json file path describing the configuration of the simulation.
-        - disp (bool): Displaying informations about the simulation. 
-    Outputs: 
-        - df (pd.DataFrame): Dataframe containing the results, ie for each time step, the consumption of each
-        appliance.
-    '''
-    with open(file_path, 'r', encoding="utf-8") as file: # 'utf-8' to avoid "é" issues
-        config = json.load(file)  # Load the JSON data into a Python dictionary
-
-
-    if sum(config['prob_EV_size']) != 1: 
-        raise ValueError(f"Probabilities associated to the EV size are incorrect. {config['prob_EV_size']}")
-    if sum(config['prob_EV_usage']) != 1 and config['EV_km_per_year'] == 0: 
-        raise ValueError(f"Probabilities associated to the EV usage are incorrect. {config['prob_EV_usage']}")
-    if sum(config['prob_EV_charger_power']) != 1: 
-        raise ValueError(f"Probabilities associated to the charger powers are incorrect. {config['prob_EV_charger_power']}")
-    
-    loads, times, dataset = one_profile(config)
-
-    file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Results.xlsx")
-
-    with pd.ExcelWriter(file_path) as writer:
-        for idx in dataset.data_vars:
-            subset = dataset[idx].to_pandas()
-            subset.to_excel(writer, sheet_name=idx)
-    df = pd.DataFrame(0, index= range(0,len(dataset['index'].values)), columns=dataset['columns'].values)
-    for var in dataset.data_vars :
-        data_var = dataset[var].to_pandas()  
-        df += data_var.fillna(0)
-    df = df.set_index(dataset['index'].values)
-
-    if disp: 
-        print("---- Results ----")
-        print("Time Horizon: ", config["nb_days"], "day(s).")
-        print("Execution time [s]")
-        print(f"\tMean: {np.mean(times)}")
-        print("Total load [kWh]")
-        print(f"\tMean: {round(np.mean(loads), 2)}; STD: {np.std(loads)}")
-    
-    if config['plot']:
-        make_demand_plot(df.index, df, title=f"Load profile for {config['nb_households']} households, for {config['nb_days']} days.")
-
-
-
-def simulate_one(file_path, disp=True):
+def simulate_all(file_path, plot=False, disp=True):
     '''
     Simulation with a .json file.
     Input:
@@ -189,11 +99,51 @@ def simulate_one(file_path, disp=True):
     with open(file_path, 'r', encoding="utf-8") as file: # 'utf-8' to avoid "é" issues
         config = json.load(file)  # Load the JSON data into a Python dictionary
 
+    houses_params = create_params(config)
+    dic_Param = {}
+    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), f"Results/Multiple/{current_time}.xlsx")
+    flex_filename = filename.replace('.xlsx', '_Flex.xlsx')
+    with pd.ExcelWriter(filename) as writer, pd.ExcelWriter(flex_filename) as flex_writer:
+        for u in range(config['nb_households']):
+            print(f"Simulating house {u+1}/{config['nb_households']}")
+            df_P, df_Flex, dic_Param[f"House{u}"] = one_profile(houses_params[u])
+            df_P.to_excel(writer, sheet_name=f"House{u}")
+            df_Flex.to_excel(flex_writer, sheet_name=f"House{u}")
+    
+    # Write dic_Param to a JSON file
+    with open(filename.replace('.xlsx', '_Param.json'), 'w', encoding="utf-8") as json_file:
+        json.dump(dic_Param, json_file, ensure_ascii=False, indent=4)
+
+    time = datetime.now() - start_time
+    if disp: 
+        print("---- Results ----")
+        print("Time Horizon: ", config["nb_days"], "day(s).")
+        print(f"Execution time {time} s")
+    
+    if plot:
+        pass #TODO: plot all the results in one figure
+
+def simulate_one(file_path, plot=False, disp=True):
+    '''
+    Simulation with a .json file.
+    Input:
+        - file (str): .json file path describing the configuration of the simulation.
+        - plot (bool): Plotting the results.
+        - disp (bool): Displaying informations about the simulation. 
+    Outputs: 
+        - Saved files in Results folder
+    '''
+
+    start_time = datetime.now()
+    with open(file_path, 'r', encoding="utf-8") as file: # 'utf-8' to avoid "é" issues
+        config = json.load(file)  # Load the JSON data into a Python dictionary
+
     df_P, df_Flex, dic_Param = one_profile(config)
     # Write df_P to a CSV file with the current date and time in the filename
     
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    csv_filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), f"Results/{current_time}.csv")
+    csv_filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), f"Results/Single/{current_time}.csv")
     df_P.to_csv(csv_filename, index=True)
     df_Flex.to_csv(csv_filename.replace('.csv', '_Flex.csv'), index=True)
     # Write dic_Param to a JSON file
@@ -208,8 +158,10 @@ def simulate_one(file_path, disp=True):
         print(f"Execution time {time} s")
         #print(f"Total load {config['timestep']*sum(df_P['Total'])/60} kWh")
     
-    if config['plot']:
+    if plot:
         plot_P(df_P)#, title=f"Load profile for {config['nb_households']} households, for {config['nb_days']} days.")
+        plot_EV(df_Flex['EVCharging'], df_Flex['Occupancy'], df_Flex['Load'], df_Flex['EV_refilled'])
+        
 
 
 
@@ -218,17 +170,14 @@ def one_profile(config):
     Function that computes the different load profiles.
 
     Inputs:
-        - config (dict): Dictionnay that contains all the inputs defined in Config.xlsx
-        - dwelling_compo (list): Containing the dwelling composition.
+        - config (dict): Dictionnay that contains all the inputs defined in Config.yaml
     
     Outputs: 
-        - df (pd.DataFrame): Dataframe containing the results, ie for each time step, the consumption of each
-        appliance.
-        - times (np.ndarray): Execution time for each simulation.
-        - loads (np.ndarray): Total load during the simulation.
+        - df_P (pd.DataFrame): Dataframe containing power consumption of each appliance with 1-minute resolution.
+        - df_Flex (pd.DataFrame): Dataframe containing flexibility of each appliance with 1-minute resolution.
+        - dic_Param (dict): Dictionary containing fixed parameters for the household.
     '''
     
-    dwelling_compo = [config[f'dwelling_member{i+1}'] for i in range(config['dwelling_nb_compo'])]
 
     start_time = time.time()
     start_date = datetime(2024, 1, 1) + pd.Timedelta(days=config["start_day"])
@@ -236,7 +185,7 @@ def one_profile(config):
     time_index = pd.date_range(start=start_date, end=end_date, freq="min")  # Minute by minute frequency
 
     #---Household creation (Base Load and indices) -------------
-    family = Household_mod(f"Scenario: ", members=dwelling_compo, selected_appliances = config['appliances']) # print put in com 
+    family = Household_mod(f"Scenario: ", members=config['occupations'], selected_appliances = config['appliances']) # print put in com 
     family.simulate(year = config['year'], ndays = config['nb_days']) # print in com
     df_P = pd.DataFrame(family.app_consumption.copy())
     df_P.index = time_index[:len(df_P)] if len(time_index) >= len(df_P) else time_index
@@ -249,9 +198,11 @@ def one_profile(config):
     #---Space Heating -------------
     if config['SpaceHeating']:
         shsetting_data = family.sh_day
-        P_HP, Flex_HP, Param_HP = space_heating(shsetting_data, config['nb_days'], config['start_day'], config['Year'], config['Size'], config['Floors'], config['P_th_nom'])
-        df_P['Heating'] = P_HP/config['COP'] 
-        Param_HP['COP'] = config['COP']
+        P_HP, Flex_HP, Param_HP = space_heating(shsetting_data, config['nb_days'], config['start_day'], config['SpaceHeating_data']['Year'], 
+                                                config['SpaceHeating_data']['Size'], config['SpaceHeating_data']['Floors'], 
+                                                config['SpaceHeating_data']['P_th_nom'])
+        df_P['Heating'] = P_HP/config['SpaceHeating_data']['COP'] 
+        Param_HP['COP'] = config['SpaceHeating_data']['COP']
         Flex_HP.index = df_Flex.index
         df_Flex = pd.concat([df_Flex, Flex_HP], axis=1)
         dic_Param["HP"] = Param_HP
@@ -259,18 +210,20 @@ def one_profile(config):
 
     #---Water Boiler-------------
     if config['HotWater']:
-        P_WB, Flex_WB, Param_WB  = water_boiler(pd.DataFrame({'mDHW':family.mDHW}), config['year'], config['HotWater_max_power'])
+        P_WB, Flex_WB, Param_WB  = water_boiler(pd.DataFrame({'mDHW':family.mDHW}), config['year'],
+                                                config['HotWater_data']['Pmax'])
         df_P['HotWater'] = P_WB.tolist()
+        Flex_WB.index = df_Flex.index
         df_Flex = pd.concat([df_Flex, Flex_WB], axis=1)
         dic_Param["WB"] = Param_WB
     #------------------------------
 
     #---EV-----------------
-    if config['EV_presence']:
-        # Reshaping of occupancy profile 
+    if config['EV']:        
+        # Redefining occupancy profile: (1: Active, 2: Sleeping)-> 1: At Home; (3: Not at home)-> 0: Not at home
         EV_occ = np.where(np.isin(family.occ_m, [1, 2]), 1, 0)
         # Running EV module
-        P_EV, Flex_EV, Param_EV = electric_vehicle(EV_occ,config, plot=config['plot'])
+        P_EV, Flex_EV, Param_EV = EV_run(EV_occ,config)
         # EV_flex = pd.DataFrame({'EVCharging':load_profile, 'Occupancy':occupancy})
         df_P['EVCharging'] =  P_EV
         df_Flex = pd.concat([df_Flex, Flex_EV], axis=1)
@@ -280,6 +233,4 @@ def one_profile(config):
     end_time = time.time()
     execution_time = end_time - start_time
     print(f"Simulation is done. Execution time: {execution_time:.2f} s.") 
-    print(df_P.head())
-    print(df_Flex.head())
     return df_P, df_Flex, dic_Param
