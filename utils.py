@@ -9,8 +9,9 @@ from datetime import datetime
 
 """Saving functions to create files with simulation results"""
 
-def save_one(config,  df_P, df_Flex, dic_Param, filetype):
+def save_one(config, filetype, df_P, df_Flex, dic_Param):
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    add_indices(df_P, df_Flex, config)  # Add indices to the dataframes
     if filetype == 'csv':
         csv_filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), f"Results/Single/{current_time}.csv")
         df_P.to_csv(csv_filename, index=True)
@@ -23,7 +24,7 @@ def save_one(config,  df_P, df_Flex, dic_Param, filetype):
     with open(json_filename, 'w', encoding="utf-8") as json_file:
         json.dump(dic_Param, json_file, ensure_ascii=False, indent=4)
 
-def save_all(config, dic_df_P, dic_df_Flex, dic_Params, houses_params, filetype):
+def save_all(config, filetype, dic_df_P, dic_df_Flex, dic_Params, houses_params):
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), f"Results/Multiple/{current_time}."+filetype)
     flex_filename = filename.replace('.'+filetype, '_Flex.'+filetype)
@@ -31,12 +32,12 @@ def save_all(config, dic_df_P, dic_df_Flex, dic_Params, houses_params, filetype)
         with pd.ExcelWriter(filename, engine="xlsxwriter") as writer:
             for sheet_name, rows in dic_df_P.items():
                 df = pd.DataFrame(rows)  # Convert list of dicts to DataFrame
-                df.to_excel(writer, sheet_name=sheet_name, index=False)
+                df.to_excel(writer, sheet_name=sheet_name, index=True)
         if config['flexibility']:
             with pd.ExcelWriter(flex_filename, engine="xlsxwriter") as writer_F:
                 for sheet_name, rows in dic_df_Flex.items():
                     df = pd.DataFrame(rows)  # Convert list of dicts to DataFrame
-                df.to_excel(writer_F, sheet_name=sheet_name, index=False)
+                    df.to_excel(writer_F, sheet_name=sheet_name, index=True)
     elif filetype == 'csv':
         with open(filename, 'w', encoding="utf-8") as file, open(flex_filename, 'w', encoding="utf-8") as flex_file:
             for u, (df_P, df_Flex) in enumerate(zip(dic_df_P.values(), dic_df_Flex.values())):
@@ -61,6 +62,8 @@ def save_all(config, dic_df_P, dic_df_Flex, dic_Params, houses_params, filetype)
 def plot_all(config, dic_df_P, dic_df_Flex, dic_Params):
     return
 def plot_one(config, df_P, df_Flex, dic_Param):
+    # Plot power demand
+    plot_P(df_P)
     return
 
 def plot_P(df):    
@@ -150,7 +153,25 @@ def plot_heating(T, T_wall, T_set, T_out, P_HP):
     fig.show()
 
 """Printing functions for the simulation results"""
-def print_one(config, df_P, df_Flex, dic_Param, time):
+def print_one(config, df_P, df_Flex, dic_Param):
+    print("Simulation Results:")
+    print("-" * 30)
+    print("Power Demand DataFrame:")
+    print(df_P.head())
+    print("\nFlexibility DataFrame:")
+    if config['flexibility']:
+        print(df_Flex.head())
+    else:
+        print("Flexibility is disabled in the configuration.")
+    print("\nSimulation Parameters:")
+    for key, value in dic_Param.items():
+        print(f"{key}: {value}")
+    
+    print("\nGeneral Statistics:")
+    print("-" * 30)
+    print(f"Total Consumption: {df_P.sum().sum()/60:.2f} kWh")
+    for appliance in df_P.columns:
+        print(f"Total Consumption for {appliance}: {df_P[appliance].sum()/60:.2f} kWh")
     return
 def print_all(config, dic_df_P, dic_df_Flex, dic_Params):
     return
@@ -225,16 +246,16 @@ def get_list_param(config):
     list_param = [{}] * config['nb_households']
     list_param = append_recurring(['nb_days', 'timestep', 'year', 'start_day', 'flexibility'], list_param, config)
     list_param = append_appliances(list_param, config)
-    list_param = append_flexible('SpaceHeating',['Year', 'Size', 'Floors','P_th_nom', 'COP'], list_param, config)
-    list_param = append_flexible('HotWater', ['Pmax', 'Volume', 'Tset'], list_param, config)
+    list_param = append_flexible('HP',['Year', 'Size', 'Floors','P_nom', 'COP'], list_param, config)
+    list_param = append_flexible('WB', ['Pmax', 'Volume', 'Tset'], list_param, config)
     list_param = append_flexible('EV', ['Consumption', 'Capacity', 'Pmax', 'eta', 'SoC_target', 'Usage'], list_param, config)
     list_param = append_family(list_param, config)
     return list_param
 
 def create_params(config):
     # Check if the config file is valid
-    check_probas(['Year', 'Size', 'Floors','P_th_nom', 'COP'], config['SpaceHeating_data'])
-    check_probas(['Pmax', 'Volume', 'Tset'], config['HotWater_data'])
+    check_probas(['Year', 'Size', 'Floors','P_nom', 'COP'], config['HP_data'])
+    check_probas(['Pmax', 'Volume', 'Tset'], config['WB_data'])
     check_probas(['Consumption', 'Capacity', 'Pmax', 'eta', 'SoC_target', 'Usage'], config['EV_data'])
     check_probas(['inhabitants'], config)
     # Create the list of parameters for each household

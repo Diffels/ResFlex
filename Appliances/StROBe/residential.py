@@ -13,7 +13,8 @@ import calendar
 import _pickle as cPickle
 import itertools
 import os
-
+import plotly.graph_objs as go
+import plotly.io as pio
 from . import stats
 from . import data
 
@@ -261,9 +262,9 @@ class Household(object):
                 # and loop sequentially transition and duration functions
                 while tmin < 1439: # 1440 = 24h*60min
                     tmin += 1
-                    if dt == 0: # previous state duration has ended
+                    if dt == 0:# and random.random() < 0.1:  # previous state duration has ended, 1 out of 10 chance
                         occs[tmin] = SA.transition(occs[tmin-1], t48[tmin]) # find most probable next state
-                        dt = 30*SA.duration(occs[tmin], t48[tmin]) - 1 # restart duration counter for new state
+                        dt = 3*SA.duration(occs[tmin], t48[tmin]) - 1 # restart duration counter for new state
                         # -1 is necessary, as the occupancy state already started
                     else:
                         occs[tmin] = occs[tmin - 1] # maintain current state
@@ -334,12 +335,9 @@ class Household(object):
         # object.
         os.chdir(cdir)
         self.occ = occ_year
+        self.occ_week = occ_week
         self.occ_m = occ_merged
         # and print statements
-        presence = [to for to in self.occ_m[0] if to < 2]
-        hours = len(presence)/6.
-        #print(' - Total presence time is {0:.1f} out of {1} hours'.format(hours, self.nday*24))
-        #print('\tbeing {:.1f} percent)'.format(hours*100/(self.nday*24)))
         return None
 
     def __plugload__(self):

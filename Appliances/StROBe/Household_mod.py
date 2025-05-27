@@ -1,9 +1,6 @@
 import os
 import sys
 import random
-#strobeDir = os.path.dirname(os.path.realpath(__file__)) # get path where this file is (StROBe path)
-#os.chdir(strobeDir)
-print(os.getcwd())
 import numpy as np
 from .residential import Household, Equipment
 from . import stats
@@ -14,7 +11,6 @@ import itertools
 import pandas as pd
 special_appliances = ['DishWasher','WasherDryer','TumbleDryer','WashingMachine', 'EVCharging']
 StaticLoad = [x for x in set_appliances if (set_appliances[x]['type'] == 'appliance' and x not in special_appliances)]
-
 
 class Household_mod(Household):  
     def parameterize(self, **kwargs):
@@ -242,11 +238,6 @@ class Household_mod(Household):
         
             self.r_receptacles = result
             self.n_receptacles = result_n
-            # output ##########################################################
-            # only the power load is returned
-            load = int(np.sum(result['P'])/60/1000)
-            # print(' - Receptacle load is %s kWh' % str(load))
-
             return None
 
         def lightingload(self):
@@ -274,40 +265,40 @@ class Household_mod(Household):
             # script ##########################################################
             # a yearly simulation is basic, also in a unittest
             nday = self.nday
-            nbin = 144 # steps in occupancy data per day (10min steps)
+            #nbin = 144 # steps in occupancy data per day (10min steps)
             nmin = nday * 24 * 60 # number of minutes in total number of days
             occ_m = self.occ_m[0]
             to = -1 # time counter for occupancy
             tl = -1 # time counter for minutes in lighting load
-            power_max = 200 # lighting power used when there is 0 irradiance (maximum)
+            power_max = 200/4 # lighting power used when there is 0 irradiance (maximum)
             irr_max = 200 # irradiance threshhold above which no lighting is used
             pow_id = np.zeros(nmin+1) # initialize zero ideal lighing load
             prob_adj = 0.1 # probability to adjust lighting
             pow_adj = 40 # step by which power is adjusted
             P = np.zeros(nmin+1)
             Q = np.zeros(nmin+1)
-            for doy, step in itertools.product(range(nday), range(nbin)): #loop over simulation period, per 10min steps
+            for m in range(len(occ_m)): #loop over simulation period, per 1min steps
                 to += 1
-                for run in range(0, 10): #for each minute in the step
-                    tl += 1
-                    if occ_m[to] > int(1) or (irr[tl] >= irr_max): #if occupants not active (occ_m>1) OR irradiance more than threshhold
-                        pow_id[tl] = 0 # lights will be off
-                    else:
-                        pow_id[tl] = power_max*(1 - irr[tl]/irr_max) # lights ON, power depends on level of irradiance compared to irr_max
-                  
-                    # determine final power usage after stepwise adjustments
-                    if occ_m[to] > int(1): # if OFF, it stays that way
-                        P[tl] = pow_id[tl]
-                    elif random.random() <= prob_adj: # if ON, check if adjustment happens (random number< prob_adj)
-                        delta = P[tl-1] - pow_id[tl] # difference between previous step and "ideal" current step 
-                        if delta > 0 and pow_adj/2 < np.abs(delta) : # if absolute difference is larger than half of the adjustment step
-                            P[tl] = P[tl-1]-pow_adj  # the new power is the previous one, decreased by the adjustment step
-                        elif delta < 0 and pow_adj/2 < np.abs(delta):
-                            P[tl] = P[tl-1]+pow_adj  # the new power is the previous one, increased by the adjustment step
-                        else: #otherwise, keep previous level
-                            P[tl] = P[tl-1]
+  #              for run in range(0, 10): #for each minute in the step
+                tl += 1
+                if occ_m[m] > int(1) or (irr[m] >= irr_max): #if occupants not active (occ_m>1) OR irradiance more than threshhold
+                    pow_id[m] = 0 # lights will be off
+                else:
+                    pow_id[m] = power_max*(1 - irr[m]/irr_max) # lights ON, power depends on level of irradiance compared to irr_max
+                
+                # determine final power usage after stepwise adjustments
+                if occ_m[to] > int(1): # if OFF, it stays that way
+                    P[m] = pow_id[m]
+                elif random.random() <= prob_adj: # if ON, check if adjustment happens (random number< prob_adj)
+                    delta = P[m-1] - pow_id[m] # difference between previous step and "ideal" current step 
+                    if delta > 0 and pow_adj/2 < np.abs(delta) : # if absolute difference is larger than half of the adjustment step
+                        P[m] = P[m-1]-pow_adj  # the new power is the previous one, decreased by the adjustment step
+                    elif delta < 0 and pow_adj/2 < np.abs(delta):
+                        P[m] = P[m-1]+pow_adj  # the new power is the previous one, increased by the adjustment step
                     else: #otherwise, keep previous level
-                        P[tl] = P[tl-1]
+                        P[m] = P[m-1]
+                else: #otherwise, keep previous level
+                    P[m] = P[m-1]
 
             radi = P*0.55 # fixed radiative part 55% for heat dissipation
             conv = P*0.45 # fixed convective part 45% for heat dissipation
@@ -315,9 +306,6 @@ class Household_mod(Household):
             result = {'P':P, 'Q':Q, 'QRad':radi, 'QCon':conv}
 
             self.r_lighting = result
-
-            load = int(np.sum(result['P'])/60/1000)
-            # print(' - Lighting load is %s kWh' % str(load))
             
             return None
 

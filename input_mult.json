@@ -1,6 +1,6 @@
 {  
     "nb_households": 3,
-    "nb_days": 31,
+    "nb_days": 365,
     "timestep": 15,
     "year": 2024,                  
     "start_day": 0,
@@ -13,8 +13,8 @@
         "P_WasherDryer": 0.25
     },             
     
-    "P_HotWater": 1,
-    "HotWater_data": {
+    "P_WB": 1,
+    "WB_data": {
         "Pmax": [3],
         "P_Pmax": [1],
         "Volume": [200],
@@ -39,16 +39,16 @@
         "P_Usage": [1]
     },
 
-    "P_SpaceHeating": 1,
-    "SpaceHeating_data": {
+    "P_HP": 1,
+    "HP_data": {
         "Year": [2009],
         "P_Year": [1],
         "Size": [100],
         "P_Size": [1],
         "Floors": [2],
         "P_Floors": [1],
-        "P_th_nom": [10],
-        "P_P_th_nom": [1],
+        "P_nom": [3],
+        "P_P_nom": [1],
         "COP": [3.5],
         "P_COP": [1]
     },

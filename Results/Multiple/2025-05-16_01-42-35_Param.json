@@ -1,0 +1,197 @@
+{
+    "House1": {
+        "nb_days": 31,
+        "timestep": 15,
+        "year": 2024,
+        "start_day": 0,
+        "flexibility": true,
+        "appliances": {
+            "WashingMachine": 1,
+            "DishWasher": 0,
+            "TumbleDryer": 0,
+            "WasherDryer": 1
+        },
+        "HP": true,
+        "HP_data": {
+            "Year": 2009.0,
+            "Size": 100.0,
+            "Floors": 2.0,
+            "P_nom": 3.0,
+            "COP": 3.5,
+            "U_wall": 0.4,
+            "C_env": 19146900.0,
+            "C_air": 307781.25,
+            "U_tot": 192.84,
+            "window_surface": 21.42,
+            "wall_surface": 200.0,
+            "volume": 250.0,
+            "north_window_surface": 4.01431627316161,
+            "east_window_surface": 4.8896208382400745,
+            "south_window_surface": 10.958047510011369,
+            "west_window_surface": 1.5551898416620011,
+            "id": 1,
+            "alpha": 1
+        },
+        "WB": true,
+        "WB_data": {
+            "Pmax": 3.0,
+            "Volume": 200.0,
+            "Tset": 60.0,
+            "T_initial": 14,
+            "T_final": 60,
+            "efficiency": 0.9,
+            "specific_heat": 4186,
+            "rho": 1,
+            "id": 1,
+            "alpha": 1
+        },
+        "EV": true,
+        "EV_data": {
+            "Consumption": 20.0,
+            "Capacity": 60.0,
+            "Pmax": 11.0,
+            "eta": 0.95,
+            "SoC_target": 0.8,
+            "Usage": 15000.0,
+            "id": 1,
+            "alpha": 1
+        },
+        "family": 4,
+        "occupations": [
+            "Random",
+            "Random",
+            "Random",
+            "Random"
+        ]
+    },
+    "House2": {
+        "nb_days": 31,
+        "timestep": 15,
+        "year": 2024,
+        "start_day": 0,
+        "flexibility": true,
+        "appliances": {
+            "WashingMachine": 1,
+            "DishWasher": 0,
+            "TumbleDryer": 0,
+            "WasherDryer": 1
+        },
+        "HP": true,
+        "HP_data": {
+            "Year": 2009.0,
+            "Size": 100.0,
+            "Floors": 2.0,
+            "P_nom": 3.0,
+            "COP": 3.5,
+            "U_wall": 0.4,
+            "C_env": 19146900.0,
+            "C_air": 307781.25,
+            "U_tot": 192.84,
+            "window_surface": 21.42,
+            "wall_surface": 200.0,
+            "volume": 250.0,
+            "north_window_surface": 4.01431627316161,
+            "east_window_surface": 4.8896208382400745,
+            "south_window_surface": 10.958047510011369,
+            "west_window_surface": 1.5551898416620011,
+            "id": 1,
+            "alpha": 1
+        },
+        "WB": true,
+        "WB_data": {
+            "Pmax": 3.0,
+            "Volume": 200.0,
+            "Tset": 60.0,
+            "T_initial": 14,
+            "T_final": 60,
+            "efficiency": 0.9,
+            "specific_heat": 4186,
+            "rho": 1,
+            "id": 1,
+            "alpha": 1
+        },
+        "EV": true,
+        "EV_data": {
+            "Consumption": 20.0,
+            "Capacity": 60.0,
+            "Pmax": 11.0,
+            "eta": 0.95,
+            "SoC_target": 0.8,
+            "Usage": 15000.0,
+            "id": 1,
+            "alpha": 1
+        },
+        "family": 4,
+        "occupations": [
+            "Random",
+            "Random",
+            "Random",
+            "Random"
+        ]
+    },
+    "House3": {
+        "nb_days": 31,
+        "timestep": 15,
+        "year": 2024,
+        "start_day": 0,
+        "flexibility": true,
+        "appliances": {
+            "WashingMachine": 1,
+            "DishWasher": 0,
+            "TumbleDryer": 0,
+            "WasherDryer": 1
+        },
+        "HP": true,
+        "HP_data": {
+            "Year": 2009.0,
+            "Size": 100.0,
+            "Floors": 2.0,
+            "P_nom": 3.0,
+            "COP": 3.5,
+            "U_wall": 0.4,
+            "C_env": 19146900.0,
+            "C_air": 307781.25,
+            "U_tot": 192.84,
+            "window_surface": 21.42,
+            "wall_surface": 200.0,
+            "volume": 250.0,
+            "north_window_surface": 4.01431627316161,
+            "east_window_surface": 4.8896208382400745,
+            "south_window_surface": 10.958047510011369,
+            "west_window_surface": 1.5551898416620011,
+            "id": 1,
+            "alpha": 1
+        },
+        "WB": true,
+        "WB_data": {
+            "Pmax": 3.0,
+            "Volume": 200.0,
+            "Tset": 60.0,
+            "T_initial": 14,
+            "T_final": 60,
+            "efficiency": 0.9,
+            "specific_heat": 4186,
+            "rho": 1,
+            "id": 1,
+            "alpha": 1
+        },
+        "EV": true,
+        "EV_data": {
+            "Consumption": 20.0,
+            "Capacity": 60.0,
+            "Pmax": 11.0,
+            "eta": 0.95,
+            "SoC_target": 0.8,
+            "Usage": 15000.0,
+            "id": 1,
+            "alpha": 1
+        },
+        "family": 4,
+        "occupations": [
+            "Random",
+            "Random",
+            "Random",
+            "Random"
+        ]
+    }
+}

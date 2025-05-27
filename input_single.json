@@ -6,15 +6,15 @@
     "flexibility": true,                     
                
     "appliances": {
-        "WashingMachine": 0.65,
-        "TumbleDryer": 0.6,
-        "DishWasher": 0.6,
-        "WasherDryer": 0.25
+        "WashingMachine": 1,
+        "TumbleDryer": 0,
+        "DishWasher": 1,
+        "WasherDryer": 0
     },               
 
-    "HotWater": true,
-    "HotWater_data": {
-        "Pmax":3,
+    "WB": true,
+    "WB_data": {
+        "Pmax":5,
         "Volume": 200,
         "Tset": 60
     },
@@ -28,12 +28,12 @@
         "SoC_target": 0.80,
         "Usage": 15000}, 
 
-    "SpaceHeating": true,
-    "SpaceHeating_data": {
+    "HP": true,
+    "HP_data": {
         "Year": 2009,
         "Size": 100,
         "Floors": 2,
-        "P_th_nom": 10,
+        "P_nom": 3,
         "COP": 3.5
     },
     
