@@ -61,10 +61,47 @@ def save_all(config, filetype, dic_df_P, dic_df_Flex, dic_Params, houses_params)
 
 def plot_all(config, dic_df_P, dic_df_Flex, dic_Params):
     return
-def plot_one(config, df_P, df_Flex, dic_Param):
-    # Plot power demand
-    plot_P(df_P)
-    return
+
+def plot_one(df_P, dic_plot, pdf=False):
+    if not pdf:
+        return
+    
+    df_P['P_HP'] *= 1e3 # /!\
+
+    # Reform columns for better plot former_col -> (new_col)
+    nice_cols = {'BaseLoad': 'Base Load', 'WashingMachine': 'Washing Machine', 'DishWasher': 'Dish Washer', 'P_WB': 'Water Boiler', 'P_HP': 'Space Heating', 'P_EV': 'Electric Vehicle'}
+    
+    df_P = df_P[nice_cols.keys()]  # Reorder DataFrame columns
+    df_P.rename(columns=nice_cols, inplace=True)  # Rename columns for better readability
+
+    cm = 1/2.54  # centimeters in inches
+    size = dic_plot['figsize_cm']
+    fig = plt.figure(figsize=(size[0]*cm,size[1]*cm)) #cm
+
+    plt.rcParams.update({'font.size': dic_plot['fontsize']*cm})
+
+    # Prepare data
+    x = df_P.index
+    y = [df_P[col] for col in df_P.columns]
+
+    # Stacked area plot
+    plt.stackplot(x, y, labels=df_P.columns, alpha=1, colors=dic_plot['colors'])
+    plt.title(dic_plot['title'])
+    plt.xlabel(dic_plot['xlabel'])
+    plt.ylabel(dic_plot['ylabel'])
+    if dic_plot['legend']:
+        plt.legend(loc='upper left', fontsize=dic_plot['fontsize']*cm, ncol=3)
+    plt.grid(dic_plot['grid'])
+    if dic_plot['save']:
+        # Create output directory
+        current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        plot_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Results/Single/Plot")
+        os.makedirs(plot_dir, exist_ok=True)
+        plot_path = os.path.join(plot_dir, f"{current_time}.pdf")
+        plt.savefig(plot_path, format='pdf')
+    if dic_plot['show']:
+        plt.show()
+    plt.close(fig)
 
 def plot_P(df):    
     fig = go.Figure()

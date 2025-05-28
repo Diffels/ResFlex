@@ -154,7 +154,7 @@ def weekly_charging2(config: dict, t_arr: np.ndarray, t_dep: np.ndarray, dur_tra
 
     # Remove randomly 20% of the driving events
     num_trips = len(t_arr)
-    num_remove = int(num_trips * 0.2)
+    num_remove = int(num_trips * 0.7)
     if num_remove > 0:
         keep_indices = np.sort(np.random.choice(num_trips, num_trips - num_remove, replace=False))
         t_arr = t_arr[keep_indices]
@@ -162,7 +162,7 @@ def weekly_charging2(config: dict, t_arr: np.ndarray, t_dep: np.ndarray, dur_tra
         dur_travel = dur_travel[keep_indices]
     
 
-    trip_kwh = get_trip_cons(config, t_arr, t_dep, dur_travel)
+    # trip_kwh = get_trip_cons(config, t_arr, t_dep, dur_travel)
 
     print(f"Daily kWh: {trip_kwh}")
     charge_length_min = np.zeros(len(t_arr))
@@ -213,5 +213,5 @@ def EV_simulate(occupancy: np.ndarray[Any, np.dtype[np.bool_]], config: dict)-> 
 
     # Trim P_EV and Flex_EV to the correct length
     P_EV = P_EV[:config["nb_days"] * 60 * 24 ]
-    Flex_EV = Flex_EV[:config["nb_days"] * 60 * 24 + 1]
+    Flex_EV = Flex_EV[:config["nb_days"] * 60 * 24]
     return P_EV, Flex_EV

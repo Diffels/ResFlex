@@ -18,7 +18,7 @@ def get_baseload(config):
     family = Household_mod(f"Scenario: ", members=config['occupations'], selected_appliances = config['appliances']) # print put in com 
     family.simulate(year = config['year'], ndays = config['nb_days']) # print in com
     df_P = pd.DataFrame(family.app_consumption.copy() / 1e3, index=None)
-    df_Flex = pd.DataFrame(family.occ_m.copy(), index=None)
+    df_Flex = pd.DataFrame(family.occ_m.copy()[:len(df_P)], index=None)
     df_Flex.columns = ['Occupancy']
     return df_P, df_Flex, family
 
@@ -39,7 +39,10 @@ def add_EV(df_P, df_Flex, family, config):
     EV_occ = np.where(np.isin(family.occ_week[0], [1, 2]), 1, 0)
     # Running EV module
     P_EV, Flex_EV = EV_simulate(EV_occ,config)
+    # print(len(P_EV.tolist()))
+    # print(len(Flex_EV.tolist()))
     # EV_flex = pd.DataFrame({'EVCharging':load_profile, 'Occupancy':occupancy})
     df_P['P_EV'] =  P_EV.tolist()
     df_Flex['EV'] = Flex_EV.tolist()
+    
     return df_P, df_Flex

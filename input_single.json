@@ -1,5 +1,5 @@
 {  
-    "nb_days": 31,
+    "nb_days": 7,
     "timestep": 15,
     "year": 2024,                  
     "start_day": 0,
@@ -14,7 +14,7 @@
 
     "WB": true,
     "WB_data": {
-        "Pmax":5,
+        "Pmax":3,
         "Volume": 200,
         "Tset": 60
     },
@@ -23,7 +23,7 @@
     "EV_data": {
         "Consumption": 20, 
         "Capacity": 60,
-        "Pmax": 11,
+        "Pmax": 5,
         "eta": 0.95, 
         "SoC_target": 0.80,
         "Usage": 15000}, 
