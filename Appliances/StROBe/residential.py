@@ -13,8 +13,6 @@ import calendar
 import _pickle as cPickle
 import itertools
 import os
-import plotly.graph_objs as go
-import plotly.io as pio
 from . import stats
 from . import data
 

@@ -65,18 +65,28 @@ def plot_all(config, dic_df_P, dic_df_Flex, dic_Params):
 def plot_one(df_P, dic_plot, pdf=False):
     if not pdf:
         return
-    
-    df_P['P_HP'] *= 1e3 # /!\
+
+    df_P['P_HP'] *= 1e2 # /!\
+
+    # Combine WashingMachine and DishWasher into 'White Goods'
+    df_P['White Goods'] = df_P.get('WashingMachine', 0) + df_P.get('DishWasher', 0)
 
     # Reform columns for better plot former_col -> (new_col)
-    nice_cols = {'BaseLoad': 'Base Load', 'WashingMachine': 'Washing Machine', 'DishWasher': 'Dish Washer', 'P_WB': 'Water Boiler', 'P_HP': 'Space Heating', 'P_EV': 'Electric Vehicle'}
-    
-    df_P = df_P[nice_cols.keys()]  # Reorder DataFrame columns
-    df_P.rename(columns=nice_cols, inplace=True)  # Rename columns for better readability
+    nice_cols = {
+        'BaseLoad': 'Base Load',
+        'White Goods': 'White Goods',
+        'P_WB': 'Water Boiler',
+        'P_HP': 'Space Heating',
+        'P_EV': 'Electric Vehicle'
+    }
+
+    # Only keep relevant columns
+    df_P = df_P[list(nice_cols.keys())]
+    df_P.rename(columns=nice_cols, inplace=True)
 
     cm = 1/2.54  # centimeters in inches
     size = dic_plot['figsize_cm']
-    fig = plt.figure(figsize=(size[0]*cm,size[1]*cm)) #cm
+    fig = plt.figure(figsize=(size[0]*cm, size[1]*cm)) #cm
 
     plt.rcParams.update({'font.size': dic_plot['fontsize']*cm})
 
@@ -87,11 +97,23 @@ def plot_one(df_P, dic_plot, pdf=False):
     # Stacked area plot
     plt.stackplot(x, y, labels=df_P.columns, alpha=1, colors=dic_plot['colors'])
     plt.title(dic_plot['title'])
-    plt.xlabel(dic_plot['xlabel'])
+    #plt.xlabel(dic_plot['xlabel'])
     plt.ylabel(dic_plot['ylabel'])
     if dic_plot['legend']:
-        plt.legend(loc='upper left', fontsize=dic_plot['fontsize']*cm, ncol=3)
+        plt.legend(loc='upper center', fontsize=dic_plot['fontsize']*cm, ncol=5)
     plt.grid(dic_plot['grid'])
+
+    # Set x-axis ticks to each day at 12:00 and labels horizontally
+    import matplotlib.dates as mdates
+    ax = plt.gca()
+    # Find all unique days in the index
+    days = pd.to_datetime(x).normalize().unique()
+    # Set ticks at 12:00 for each day
+    ticks = [pd.Timestamp(day) + pd.Timedelta(hours=12) for day in days]
+    ax.set_xticks(ticks)
+    ax.set_xticklabels([tick.strftime('%d-%b') for tick in ticks], rotation=0, ha='center')
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%b'))
+
     if dic_plot['save']:
         # Create output directory
         current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")

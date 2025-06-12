@@ -29,11 +29,11 @@ def simulate_one(config, filetype='csv', plot_res=False, print_res=True):
     if print_res: utils.print_one(config, df_P, df_Flex, dic_Param)
     if plot_res:
         # Poster colors:
-        colors = ['#a5a5a5', "#c6dee1", "#95e2ea", '#6c96c2', '#d4524f', '#a87e5b']  # Add hex color codes (same order as nice_cols)
-        # New proposed colors:
+        colors = ['#a5a5a5',  "#95e2ea", '#6c96c2', '#d4524f', '#a87e5b']  # Add hex color codes (same order as nice_cols)
+        # New proposed colors:"#c6dee1",'xlabel': 'Time',
         #colors = ["#a7a7a7", "#45bde9", "#3a74e9", "#ea8f45", "#ed5151", "#80d671"]
-        dic_plot = {'show': True, 'save': True, 'fontsize': 44, 'figsize_cm':(66, 13), 'title': 'Power Consumption for one Household',
-                    'xlabel': 'Time', 'ylabel': 'Power (kW)', 'grid': True, 'legend': True, 'colors': colors} 
+        dic_plot = {'show': True, 'save': True, 'fontsize': 44, 'figsize_cm':(66, 10), 'title': 'Power Consumption for one Household',
+                     'ylabel': 'Power (kW)', 'grid': True, 'legend': True, 'colors': colors} 
         utils.plot_one(df_P, dic_plot, pdf=True)
 
 def add_ComFlex_params(d):

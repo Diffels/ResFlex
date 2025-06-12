@@ -16,7 +16,9 @@
     "WB_data": {
         "Pmax":3,
         "Volume": 200,
-        "Tset": 60
+        "Tset": 60,
+        "Height": 1.5,
+        "Diameter": 0.5
     },
 
     "EV": true,          
@@ -31,10 +33,10 @@
     "HP": true,
     "HP_data": {
         "Year": 2009,
-        "Size": 100,
-        "Floors": 2,
-        "P_nom": 3,
-        "COP": 3.5
+        "Size": 50,
+        "Floors": 3,
+        "P_nom": 40,
+        "COP": 15
     },
     
     "inhabitants":4,
