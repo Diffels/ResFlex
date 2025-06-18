@@ -1,0 +1,58 @@
+{  
+    "nb_households": 3,
+    "nb_days": 365,
+    "timestep": 15,
+    "year": 2024,                  
+    "start_day": 0,
+    "flexibility": true,                     
+               
+    "appliances": {
+        "P_WashingMachine": 0.65,
+        "P_TumbleDryer": 0.6,
+        "P_DishWasher": 0.6,
+        "P_WasherDryer": 0.25
+    },             
+    
+    "P_WB": 1,
+    "WB_data": {
+        "Pmax": [3],
+        "P_Pmax": [1],
+        "Volume": [200],
+        "P_Volume": [1],
+        "Tset": [60],
+        "P_Tset": [1]
+    },
+
+    "P_EV": 1,
+    "EV_data": {
+        "Consumption": [20],
+        "P_Consumption": [1],
+        "Capacity": [60],
+        "P_Capacity": [1],
+        "Pmax": [11],
+        "P_Pmax": [1],
+        "eta": [0.95],
+        "P_eta": [1],
+        "SoC_target": [0.80],
+        "P_SoC_target": [1],
+        "Usage": [15000],
+        "P_Usage": [1]
+    },
+
+    "P_HP": 1,
+    "HP_data": {
+        "Year": [2009],
+        "P_Year": [1],
+        "Size": [100],
+        "P_Size": [1],
+        "Floors": [2],
+        "P_Floors": [1],
+        "P_nom": [3],
+        "P_P_nom": [1],
+        "COP": [5],
+        "P_COP": [1]
+    },
+
+    "inhabitants":[4],
+    "P_inhabitants": [1]
+}
