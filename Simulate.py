@@ -82,7 +82,7 @@ def one_profile(config):
     if config['HP']: df_P, df_Flex = Appliances.add_HP(df_P, df_Flex, family, config)
     if config['WB']: df_P, df_Flex = Appliances.add_WB(df_P, df_Flex, family, config)
 
-    utils.set_timesteps(df_P, df_Flex, config) # changer timestep
+    df_P, df_Flex = utils.set_timesteps(df_P, df_Flex, config) # changer timestep
 
     config = add_ComFlex_params(config)
 
