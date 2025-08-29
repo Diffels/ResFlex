@@ -16,7 +16,11 @@ def simulate_all(config, filetype='xlsx', plot_res=False, print_res=True):
         print(f"Simulating {user} ({u}/{len(houses_params)})")
         dic_df_P[user], dic_df_Flex[user], dic_Params[user] = one_profile(house_params)
 
-    if filetype is not None: utils.save_all(config, filetype, dic_df_P, dic_df_Flex, dic_Params, houses_params)
+
+    if filetype is not None: 
+        print("Saving results...")
+        utils.save_all(config, filetype, dic_df_P, dic_df_Flex, dic_Params, houses_params)
+
 
     if print_res: utils.print_all(config, dic_df_P, dic_df_Flex, dic_Params)
     if plot_res: utils.plot_all(config, dic_df_P, dic_df_Flex, dic_Params)
@@ -78,7 +82,7 @@ def one_profile(config):
     if config['HP']: df_P, df_Flex = Appliances.add_HP(df_P, df_Flex, family, config)
     if config['WB']: df_P, df_Flex = Appliances.add_WB(df_P, df_Flex, family, config)
 
-    utils.add_indices(df_P, df_Flex, config)
+    utils.set_timesteps(df_P, df_Flex, config) # changer timestep
 
     config = add_ComFlex_params(config)
 
@@ -88,7 +92,7 @@ def one_profile(config):
     return df_P, df_Flex, config
 
 if __name__ == '__main__':
-    mult = False
+    mult = True
     if mult:
         file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "input_mult.json")
         with open(file_path, 'r', encoding="utf-8") as file: config = json.load(file)  # Load the JSON data into a Python dictionary

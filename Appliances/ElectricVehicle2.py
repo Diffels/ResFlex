@@ -75,13 +75,13 @@ def charging_outside(E_journey, E_leaving):
     '''
     r = E_journey/E_leaving
     if r > 1.0: # If journey requires more energy than available, charge mandatory.
-        print(f"Charging outside: {E_journey/2} kWh")
+        # print(f"Charging outside: {E_journey/2} kWh")
         return E_journey/2
     elif r < 0.1: # Short journeys do not require charge.
         return E_journey
     else: 
         P = E_journey / 2 if random.random() < r else E_journey
-        if P < E_journey: print(f"Charging outside: {P} kWh")
+        # if P < E_journey: print(f"Charging outside: {P} kWh")
     return P
 
 def weekly_charging(config: dict, t_arr: np.ndarray, t_dep: np.ndarray, dur_travel: np.ndarray) -> np.ndarray:
@@ -131,11 +131,15 @@ def weekly_charging(config: dict, t_arr: np.ndarray, t_dep: np.ndarray, dur_trav
             charge_length = int((cons / config["EV_data"]["Pmax"]) * 60 )
             charge_length_min.append(charge_length)
             # Ensure charge length is not longer than the time between arrival and departure
-            max_charging_time = (d+1)*24*60-arr[i] if i==len(dep)-1 else dep[i+1] - arr[i]
+            if i < len(dep)-1:
+                max_charging_time = dep[i+1] - arr[i]  
+            else :
+                max_charging_time = (d+1)*24*60-arr[i]
+            
             if charge_length > max_charging_time: 
                 missing_charge += (charge_length - max_charging_time)*config["EV_data"]["Pmax"] / 60
                 charge_length = max_charging_time 
-                print(f"Missing charge: {missing_charge} kWh")
+                # print(f"Missing charge: {missing_charge} kWh")
             else: 
                 missing_charge = 0
 
@@ -147,7 +151,7 @@ def weekly_charging(config: dict, t_arr: np.ndarray, t_dep: np.ndarray, dur_trav
     # Throw error if t_ar, t_dep, and charge_length_min do not have the same length
     if not (len(t_ar) == len(t_dep) == len(charge_length_min)):
         raise ValueError(f"Error: t_arr, t_dep, and charge_length_min must have the same length. Got lengths: t_arr={len(t_ar)}, t_dep={len(t_dep)}, charge_length_min={len(charge_length_min)}")
-    print(f"Weekly charging : {sum(charge_length_min)*config['EV_data']['Pmax']/60} kWh, representing {sum(charge_length_min)*config['EV_data']['Pmax']/(.60*config['EV_data']['Consumption'])} km")
+    # print(f"Weekly charging : {sum(charge_length_min)*config['EV_data']['Pmax']/60} kWh, representing {sum(charge_length_min)*config['EV_data']['Pmax']/(.60*config['EV_data']['Consumption'])} km")
     return t_ar, t_dep, charge_length_min 
 
 def weekly_charging2(config: dict, t_arr: np.ndarray, t_dep: np.ndarray, dur_travel: np.ndarray) -> np.ndarray:
@@ -164,7 +168,7 @@ def weekly_charging2(config: dict, t_arr: np.ndarray, t_dep: np.ndarray, dur_tra
 
     # trip_kwh = get_trip_cons(config, t_arr, t_dep, dur_travel)
 
-    print(f"Daily kWh: {trip_kwh}")
+    # print(f"Daily kWh: {trip_kwh}")
     charge_length_min = np.zeros(len(t_arr))
     missing_charge = 0
     # Compute the consumption for each trip
@@ -176,11 +180,11 @@ def weekly_charging2(config: dict, t_arr: np.ndarray, t_dep: np.ndarray, dur_tra
         charge_length_min.append(charge_length)
         # Ensure charge length is not longer than the time between arrival and departure
         max_charging_time = 7*24*60-t_arr[i] if i==len(t_dep)-1 else t_dep[i+1] - t_arr[i]
-        print(f"Charge length: {charge_length} min, max charge length: {max_charging_time} min, {t_arr[i]}")
+        # print(f"Charge length: {charge_length} min, max charge length: {max_charging_time} min, {t_arr[i]}")
         if charge_length > max_charging_time: 
             missing_charge += (charge_length - max_charging_time)*config["EV_data"]["Pmax"] / 60
             charge_length = max_charging_time 
-            print(f"Missing charge: {missing_charge} kWh")
+            # print(f"Missing charge: {missing_charge} kWh")
         else: 
             missing_charge = 0
 
@@ -204,12 +208,28 @@ def EV_simulate(occupancy: np.ndarray[Any, np.dtype[np.bool_]], config: dict)-> 
     t_arr, t_dep, dur_travel = get_weekly_journey_times(occupancy, config) # Get the departure and arrival times of the EV
     P_EV = np.zeros(7*(int((config["nb_days"]-1)/7)+1)*24*60) # Initialize the EV load profile
     Flex_EV = np.zeros(len(P_EV)) # Initialize the EV flexibility profile
-
+    weekly_timesteps = (7 * 60 * 24)
+                       
     for w in range(int((config["nb_days"]-1)/7) + 1): # loop for each week
         t_arr_w, t_dep_w, charge_length_min = weekly_charging(config, t_arr, t_dep, dur_travel) 
+
         for i in range(len(t_arr_w)):
-            P_EV[w*7*60*24+t_arr_w[i]:w*7*60*24+t_arr_w[i]+charge_length_min[i]] = config["EV_data"]["Pmax"] # Add the consumption to the EV load profile
-            Flex_EV[w*7*60*24+t_arr_w[i]:w*7*60*24+t_dep_w[i]] = 1 # Add the consumption to the EV flexibility profile
+            P_EV[w*weekly_timesteps+t_arr_w[i]:w*weekly_timesteps+t_arr_w[i]+charge_length_min[i]] = config["EV_data"]["Pmax"] # Add the consumption to the EV load profile
+            Flex_EV[w*weekly_timesteps+t_arr_w[i]:w*weekly_timesteps+t_dep_w[i]] = 1 
+
+        for i in range(len(t_arr_w)):
+
+            EV_arrive = int(w * weekly_timesteps + t_arr_w[i])
+            EV_leave = int(w * weekly_timesteps + t_dep_w[i+1]) if i < len(t_dep_w)-1 else -1
+            EV_charge = int(charge_length_min[i])
+
+            P_EV[EV_arrive: EV_arrive + EV_charge] = config["EV_data"]["Pmax"] 
+            
+            Flex_EV[EV_arrive:EV_leave] = 1 
+
+        # Assume the EV starts connected at home at the beginning of the simulation
+        if w == 0 and len(t_arr_w) > 0:
+            Flex_EV[:t_dep_w[0]] = 1
 
     # Trim P_EV and Flex_EV to the correct length
     P_EV = P_EV[:config["nb_days"] * 60 * 24 ]

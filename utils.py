@@ -248,12 +248,44 @@ create_params takes a config file and creates a list of parameters for each hous
         - probas_to_list takes a list of probabilities and a list of values and returns a list of values based on the probabilities
 """
 
-def add_indices(df_P, df_Flex, config):
+def set_timesteps(df_P, df_Flex, config):
+    """Set the time index of the dataframes based on the configuration and desired timestep."""
+
+    ts = config['timestep'] # Specified timestep in minutes
+
     start_date = datetime(2024, 1, 1) + pd.Timedelta(days=config["start_day"])
     end_date = start_date + pd.Timedelta(days=config["nb_days"])
-    time_index = pd.date_range(start=start_date, end=end_date, freq="min")  # Minute by minute frequency
+    time_index = pd.date_range(start=start_date, end=end_date, freq=f"1min")  # Adjust frequency based on timestep
     df_P.index = time_index[:len(df_P)] if len(time_index) >= len(df_P) else time_index
     df_Flex.index = time_index[:len(df_Flex)] if len(time_index) >= len(df_Flex) else time_index
+
+    # Take the mean of the power for df_P with new timestep, interpolate in case of missing values (uncessery i think)
+    df_P = df_P.resample(f'{ts}min').mean().interpolate()
+ 
+    # For binary (or categorical) values and setpoint steps, take the last value in the interval
+    df_Flex_newindex = pd.DataFrame(index=pd.date_range(start=start_date, end=end_date, freq=f'{ts}min'))[:-1]
+    df_Flex_newindex['Occupancy'] = df_Flex['Occupancy'].resample(f'{ts}min').last()
+    df_Flex_newindex['EV'] = df_Flex['EV'].resample(f'{ts}min').last()
+    df_Flex_newindex['Tset'] = df_Flex['Tset'].resample(f'{ts}min').last()
+    # For continuous values, take the mean in the interval
+    df_Flex_newindex[['Tref', 'Twall', 'Tout']] = df_Flex[['Tref', 'Twall', 'Tout']].resample(f'{ts}min').mean()
+    df_Flex_newindex[['Ploss', 'Power', 'Power_limited']] = df_Flex[['Ploss', 'Power', 'Power_limited']].resample(f'{ts}min').mean()
+
+    # print(df_Flex)
+    # var='Power_limited'
+    # # Plot profiles on the same figure
+    # fig, ax = plt.subplots(figsize=(20, 10))
+    # ax.plot(df_Flex.index, df_Flex[var], label='Original', color='tab:blue', alpha=0.7)
+    # ax.plot(df_Flex_newindex.index, df_Flex_newindex[var], label='Resampled', color='orange', alpha=0.7)
+    # ax.legend()
+    # ax.set_title(f"Plot of {var}")
+    # ax.set_xlabel("Time")
+    # ax.set_ylabel("Power")
+    # plt.show()
+    # print(df_Flex_newindex)
+
+
+    
 
 def check_probas(fields, config):
     for field in fields:
@@ -320,3 +352,6 @@ def create_params(config):
     # Create the list of parameters for each household
     params = get_list_param(config)
     return params
+
+def change_timestep():
+    return
