@@ -7,9 +7,9 @@
         "flexibility": true,
         "appliances": {
             "WashingMachine": 1,
-            "DishWasher": 1,
+            "DishWasher": 0,
             "TumbleDryer": 0,
-            "WasherDryer": 1
+            "WasherDryer": 0
         },
         "HP": true,
         "HP_data": {
@@ -21,14 +21,14 @@
             "U_wall": 0.4,
             "C_env": 19146900.0,
             "C_air": 307781.25,
-            "U_tot": 179.0,
-            "window_surface": 14.5,
+            "U_tot": 187.82,
+            "window_surface": 18.91,
             "wall_surface": 200.0,
             "volume": 250.0,
-            "north_window_surface": 3.718412277054739,
-            "east_window_surface": 3.0117445545080628,
-            "south_window_surface": 7.770835816232348,
-            "west_window_surface": 0,
+            "north_window_surface": 6.534250906712197,
+            "east_window_surface": 9.057202862522711,
+            "south_window_surface": 0,
+            "west_window_surface": 3.3144349356938068,
             "id": 1,
             "alpha": 1
         },
@@ -86,9 +86,9 @@
         "flexibility": true,
         "appliances": {
             "WashingMachine": 1,
-            "DishWasher": 1,
+            "DishWasher": 0,
             "TumbleDryer": 0,
-            "WasherDryer": 1
+            "WasherDryer": 0
         },
         "HP": true,
         "HP_data": {
@@ -100,14 +100,14 @@
             "U_wall": 0.4,
             "C_env": 19146900.0,
             "C_air": 307781.25,
-            "U_tot": 179.0,
-            "window_surface": 14.5,
+            "U_tot": 187.82,
+            "window_surface": 18.91,
             "wall_surface": 200.0,
             "volume": 250.0,
-            "north_window_surface": 3.718412277054739,
-            "east_window_surface": 3.0117445545080628,
-            "south_window_surface": 7.770835816232348,
-            "west_window_surface": 0,
+            "north_window_surface": 6.534250906712197,
+            "east_window_surface": 9.057202862522711,
+            "south_window_surface": 0,
+            "west_window_surface": 3.3144349356938068,
             "id": 1,
             "alpha": 1
         },
@@ -165,9 +165,9 @@
         "flexibility": true,
         "appliances": {
             "WashingMachine": 1,
-            "DishWasher": 1,
+            "DishWasher": 0,
             "TumbleDryer": 0,
-            "WasherDryer": 1
+            "WasherDryer": 0
         },
         "HP": true,
         "HP_data": {
@@ -179,14 +179,14 @@
             "U_wall": 0.4,
             "C_env": 19146900.0,
             "C_air": 307781.25,
-            "U_tot": 179.0,
-            "window_surface": 14.5,
+            "U_tot": 187.82,
+            "window_surface": 18.91,
             "wall_surface": 200.0,
             "volume": 250.0,
-            "north_window_surface": 3.718412277054739,
-            "east_window_surface": 3.0117445545080628,
-            "south_window_surface": 7.770835816232348,
-            "west_window_surface": 0,
+            "north_window_surface": 6.534250906712197,
+            "east_window_surface": 9.057202862522711,
+            "south_window_surface": 0,
+            "west_window_surface": 3.3144349356938068,
             "id": 1,
             "alpha": 1
         },

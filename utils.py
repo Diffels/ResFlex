@@ -263,27 +263,13 @@ def set_timesteps(df_P, df_Flex, config):
     df_P = df_P.resample(f'{ts}min').mean().interpolate()
  
     # For binary (or categorical) values and setpoint steps, take the last value in the interval
-    df_Flex_newindex = pd.DataFrame(index=pd.date_range(start=start_date, end=end_date, freq=f'{ts}min'))[:-1]
-    df_Flex_newindex['Occupancy'] = df_Flex['Occupancy'].resample(f'{ts}min').last()
-    df_Flex_newindex['EV'] = df_Flex['EV'].resample(f'{ts}min').last()
-    df_Flex_newindex['Tset'] = df_Flex['Tset'].resample(f'{ts}min').last()
+    df_P = pd.DataFrame(index=pd.date_range(start=start_date, end=end_date, freq=f'{ts}min'))[:-1]
+    df_P['Occupancy'] = df_Flex['Occupancy'].resample(f'{ts}min').last()
+    df_P['EV'] = df_Flex['EV'].resample(f'{ts}min').last()
+    df_P['Tset'] = df_Flex['Tset'].resample(f'{ts}min').last()
     # For continuous values, take the mean in the interval
-    df_Flex_newindex[['Tref', 'Twall', 'Tout']] = df_Flex[['Tref', 'Twall', 'Tout']].resample(f'{ts}min').mean()
-    df_Flex_newindex[['Ploss', 'Power', 'Power_limited']] = df_Flex[['Ploss', 'Power', 'Power_limited']].resample(f'{ts}min').mean()
-
-    # print(df_Flex)
-    # var='Power_limited'
-    # # Plot profiles on the same figure
-    # fig, ax = plt.subplots(figsize=(20, 10))
-    # ax.plot(df_Flex.index, df_Flex[var], label='Original', color='tab:blue', alpha=0.7)
-    # ax.plot(df_Flex_newindex.index, df_Flex_newindex[var], label='Resampled', color='orange', alpha=0.7)
-    # ax.legend()
-    # ax.set_title(f"Plot of {var}")
-    # ax.set_xlabel("Time")
-    # ax.set_ylabel("Power")
-    # plt.show()
-    # print(df_Flex_newindex)
-
+    df_P[['Tref', 'Twall', 'Tout']] = df_Flex[['Tref', 'Twall', 'Tout']].resample(f'{ts}min').mean()
+    df_P[['Ploss', 'Power', 'Power_limited']] = df_Flex[['Ploss', 'Power', 'Power_limited']].resample(f'{ts}min').mean()
 
     
 
