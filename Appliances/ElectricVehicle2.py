@@ -208,8 +208,8 @@ def EV_simulate(occupancy: np.ndarray[Any, np.dtype[np.bool_]], config: dict)-> 
     t_arr, t_dep, dur_travel = get_weekly_journey_times(occupancy, config) # Get the departure and arrival times of the EV
     P_EV = np.zeros(7*(int((config["nb_days"]-1)/7)+1)*24*60) # Initialize the EV load profile
     weekly_timesteps = (7 * 60 * 24)
-    # Initialize flex_ev DataFrame with required columns and proper dtypes
-    Flex_EV = pd.DataFrame(index=np.arange(len(P_EV)),
+    # Initialize Flex_EV DataFrame with zeros everywhere and proper dtypes
+    Flex_EV = pd.DataFrame(0, index=np.arange(len(P_EV)),
                            columns=["EV_plugged", "EV_arrival", "EV_departure", "SoC_ref", "SoC_arr"])
                        
     for w in range(int((config["nb_days"]-1)/7) + 1): # loop for each week

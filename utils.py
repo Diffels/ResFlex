@@ -47,9 +47,8 @@ def save_all(config, dic_df_P, dic_df_Flex, dic_Params, houses_params):
         for u, (df_P, df_Flex) in enumerate(zip(dic_df_P.values(), dic_df_Flex.values())):
             filename = os.path.join(out_dir, f"household_{u+1}_ref.csv")
             flex_filename = os.path.join(out_dir, f"household_{u+1}_flex.csv")
-            with open(filename, 'w', encoding="utf-8") as file, open(flex_filename, 'w', encoding="utf-8") as flex_file:
-                df_P.to_csv(file, mode='a', header=True if u == 0 else False)
-                df_Flex.to_csv(flex_file, mode='a', header=True if u == 0 else False)
+            df_P.to_csv(filename, mode='w', header=True)
+            df_Flex.to_csv(flex_filename, mode='w', header=True)
 
 
     elif filetype == 'nc':
