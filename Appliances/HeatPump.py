@@ -118,7 +118,7 @@ def weather_import(house: House, weather_path, start_day, nb_days):
     
     return T_out[start_day*24*60:(start_day+nb_days)*24*60] , (Q_dot_North + Q_dot_East + Q_dot_West + Q_dot_South)[start_day*24*60:(start_day+nb_days)*24*60] 
 
-def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom=8000):
+def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom=8):
     n_ts = 24*60        # Number of time steps in a day (1 min intervals)
     abs = 0.5           # Temperature difference threshold for HP control
     ACH = 0.1           # Air changes per hour [1/h]
@@ -160,7 +160,7 @@ def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom=8000):
         T_wall[ts] = T_wall[ts-1] + dTwall*60          # Update wall temperature
         
 
-    return HP/1e3, T_in, T_wall, P_loss  # Return HP power, indoor and wall temperature, Power losses
+    return HP, T_in, T_wall, P_loss  # Return HP power, indoor and wall temperature, Power losses
 
 def HP_simulate(T_set, config):     
     T_out, P_irr = weather_import(config['HP_data'], os.path.join(os.path.dirname(__file__), 'database', 'Meteo2022_Liege.xlsx'),

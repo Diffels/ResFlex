@@ -211,6 +211,9 @@ def EV_simulate(occupancy: np.ndarray[Any, np.dtype[np.bool_]], config: dict)-> 
     # Initialize Flex_EV DataFrame with zeros everywhere and proper dtypes
     Flex_EV = pd.DataFrame(0, index=np.arange(len(P_EV)),
                            columns=["EV_plugged", "EV_arrival", "EV_departure", "SoC_ref", "SoC_arr"])
+    # Ensure SoC columns are floats
+    Flex_EV["SoC_ref"] = Flex_EV["SoC_ref"].astype(float)
+    Flex_EV["SoC_arr"] = Flex_EV["SoC_arr"].astype(float)
                        
     for w in range(int((config["nb_days"]-1)/7) + 1): # loop for each week
         t_arr_w, t_dep_w, charge_length_min = weekly_charging(config, t_arr, t_dep, dur_travel) 

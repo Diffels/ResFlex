@@ -17,7 +17,7 @@
     "WB_data": {
         "Pmax":3,
         "Volume": 200,
-        "Tset": 60,
+        "T_set": 60,
         "Height": 1.5,
         "Diameter": 0.5
     },

@@ -277,10 +277,11 @@ def set_timesteps(df_P, df_Flex, config):
     df_Flex_newindex['Occupancy'] = df_Flex['Occupancy'].resample(f'{ts}min').last()
     df_Flex_newindex[['EV_plugged','EV_arrival','EV_departure','SoC_ref']] = df_Flex[['EV_plugged','EV_arrival','EV_departure', 'SoC_ref']].resample(f'{ts}min').last()
     df_Flex_newindex['SoC_arr'] = df_Flex['SoC_arr'].resample(f'{ts}min').max()
-    df_Flex_newindex['Tset'] = df_Flex['Tset'].resample(f'{ts}min').last()
+    df_Flex_newindex['T_set'] = df_Flex['T_set'].resample(f'{ts}min').last()
     # For continuous values, take the mean in the interval
     df_Flex_newindex[['Tref', 'Twall', 'Tout']] = df_Flex[['Tref', 'Twall', 'Tout']].resample(f'{ts}min').mean()
-    df_Flex_newindex[['Ploss', 'Power', 'Power_limited']] = df_Flex[['Ploss', 'Power', 'Power_limited']].resample(f'{ts}min').mean()
+    df_Flex_newindex[['T_ref', 'T_set']] = df_Flex[['T_ref', 'T_set']].resample(f'{ts}min').last()
+    df_Flex_newindex[['P_use', 'P_loss']] = df_Flex[['P_use', 'P_loss']].resample(f'{ts}min').mean()
 
     return df_P, df_Flex_newindex
 
@@ -338,7 +339,7 @@ def get_list_param(config):
     list_param = append_recurring(['nb_days', 'timestep', 'year', 'start_day', 'flexibility'], list_param, config)
     list_param = append_appliances(list_param, config)
     list_param = append_flexible('HP',['Year', 'Size', 'Floors','P_nom', 'COP'], list_param, config)
-    list_param = append_flexible('WB', ['Pmax', 'Volume', 'Tset'], list_param, config)
+    list_param = append_flexible('WB', ['Pmax', 'Volume', 'T_set'], list_param, config)
     list_param = append_flexible('EV', ['Consumption', 'Capacity', 'Pmax', 'eta', 'SoC_target', 'Usage'], list_param, config)
     list_param = append_family(list_param, config)
     return list_param
@@ -346,7 +347,7 @@ def get_list_param(config):
 def create_params(config):
     # Check if the config file is valid
     check_probas(['Year', 'Size', 'Floors','P_nom', 'COP'], config['HP_data'])
-    check_probas(['Pmax', 'Volume', 'Tset'], config['WB_data'])
+    check_probas(['Pmax', 'Volume', 'T_set'], config['WB_data'])
     check_probas(['Consumption', 'Capacity', 'Pmax', 'eta', 'SoC_target', 'Usage'], config['EV_data'])
     check_probas(['inhabitants'], config)
     # Create the list of parameters for each household

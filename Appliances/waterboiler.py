@@ -2,11 +2,11 @@ import numpy as np
 import pandas as pd
 
 def add_params_WB(config):
-    config['WB_data']['T_initial'] = 14 # Température de l'eau froide (en °C)
-    config['WB_data']['T_final'] = 60   # Température de consigne (en °C)
-    config['WB_data']['efficiency'] = 0.9  # Efficacité du chauffe-eau (en fraction)
-    config['WB_data']['specific_heat'] = 4186  # Capacité thermique spécifique de l'eau (J/kg°C)
+    config['WB_data']['T_in'] = 14 # Cold water temperature
+    config['WB_data']['T_amb'] = 20 # Ambient temperature
+    config['WB_data']['specific_heat'] = 4.186  # Capacité thermique spécifique de l'eau (J/kg°C)
     config['WB_data']['rho'] = 1 #kg/L
+    config['WB_data']['C_WB'] = 1/(config['WB_data']['rho'] * config['WB_data']['specific_heat'] * config['WB_data']['Volume'])
     return config
 
 def limit_power(power_per_time, max_power):
@@ -54,11 +54,31 @@ def WB_simulate(mDHW, config):
     step of the simulation and the maximal power that could be delivered by the electrical boiler.
     It returns a vector of the electrical boiler load.
     """
-    wb_data = config['WB_data']
-    mDHW['Power'] = mDHW['mDHW'] * wb_data['rho'] * (wb_data['T_final'] - wb_data['T_initial']) * wb_data['specific_heat']  # [J]
-    mDHW['Power'] = mDHW['Power'] / (wb_data['efficiency'] * 3.6e3)  # Wh for each minute
-    mDHW['Power'] = mDHW['Power'] * 60  # kW
-    mDHW['Power_limited'] = limit_power(mDHW['Power'], wb_data['Pmax']*1e3)  
+    wb_data=config['WB_data']
 
-    Flex_WB = pd.DataFrame({'Power': mDHW['Power'][:-1], 'Power_limited': mDHW['Power_limited'][:-1]})
-    return mDHW['Power_limited'][:-1], Flex_WB
+    #P_use = mDHW['mDHW']
+    P_use = mDHW['mDHW'] * wb_data['rho'] * (wb_data['T_set'] - wb_data['T_in']) * wb_data['specific_heat']*60  # [J]*60 seconds
+
+    sim_len=len(P_use)
+    P_WB = np.zeros(sim_len)
+    P_loss = np.zeros(sim_len)
+    T_set = np.repeat(wb_data['T_set'], sim_len)
+    T_ref = np.repeat(wb_data['T_in'], sim_len)
+    T_ref[0] = wb_data['T_set']
+    T_out = 20 # Temperature in the room
+
+    
+    for i in range(sim_len-1):
+        if T_ref[i] < T_set[i]:P_WB[i] = wb_data['Pmax']
+        else: P_WB[i] = 0
+        P_loss[i] = 0#C_wall * (T_ref[i] - T_out)
+        T_ref[i+1] = T_ref[i] + 1/60 * wb_data['C_WB'] * (P_WB[i] - P_use[i] - P_loss[i])
+
+
+    #mDHW['Power'] = mDHW['mDHW'] * wb_data['rho'] * (wb_data['T_final'] - wb_data['T_initial']) * wb_data['specific_heat']  # [J]
+    #mDHW['Power'] = mDHW['Power'] / (wb_data['efficiency'] * 3.6e3)  # Wh for each minute
+    #mDHW['Power'] = mDHW['Power'] * 60  # kW
+    #mDHW['Power_limited'] = limit_power(mDHW['Power'], wb_data['Pmax']*1e3)  
+
+    df_Flex = pd.DataFrame({'P_use': P_use[:-1],'P_loss': P_loss[:-1],'T_set': T_set[:-1],'T_ref': T_ref[:-1]})
+    return P_WB[:-1], df_Flex

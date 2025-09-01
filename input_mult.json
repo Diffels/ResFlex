@@ -20,8 +20,8 @@
         "P_Pmax": [1],
         "Volume": [200],
         "P_Volume": [1],
-        "Tset": [60],
-        "P_Tset": [1]
+        "T_set": [60],
+        "P_T_set": [1]
     },
 
     "P_EV": 1,

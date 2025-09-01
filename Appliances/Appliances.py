@@ -30,17 +30,15 @@ def add_HP(df_P, df_Flex, family, config):
 
 def add_WB(df_P, df_Flex, family, config):
     P_WB, Flex_WB  = WB_simulate(pd.DataFrame({'mDHW':family.mDHW}),config)
-    df_P['P_WB'] = (P_WB/1e3).tolist()
+    df_P['P_WB'] = P_WB
     df_Flex = pd.concat([df_Flex, Flex_WB], axis=1)
     return df_P, df_Flex
 
 def add_EV(df_P, df_Flex, family, config):   
     # Redefining occupancy profile: (1: Active, 2: Sleeping)-> 1: At Home; (3: Not at home)-> 0: Not at home
     EV_occ = np.where(np.isin(family.occ_week[0], [1, 2]), 1, 0)
-    # Running EV module
     P_EV, Flex_EV = EV_simulate(EV_occ,config)
-    # EV_flex = pd.DataFrame({'EVCharging':load_profile, 'Occupancy':occupancy})
-    df_P['P_EV'] =  P_EV.tolist()
+    df_P['P_EV'] =  P_EV
     df_Flex = pd.concat([df_Flex, Flex_EV], axis=1)
     
     return df_P, df_Flex
