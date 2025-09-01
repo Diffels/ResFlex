@@ -207,15 +207,17 @@ def EV_simulate(occupancy: np.ndarray[Any, np.dtype[np.bool_]], config: dict)-> 
 
     t_arr, t_dep, dur_travel = get_weekly_journey_times(occupancy, config) # Get the departure and arrival times of the EV
     P_EV = np.zeros(7*(int((config["nb_days"]-1)/7)+1)*24*60) # Initialize the EV load profile
-    Flex_EV = np.zeros(len(P_EV)) # Initialize the EV flexibility profile
     weekly_timesteps = (7 * 60 * 24)
+    # Initialize flex_ev DataFrame with required columns and proper dtypes
+    Flex_EV = pd.DataFrame(index=np.arange(len(P_EV)),
+                           columns=["EV_plugged", "EV_arrival", "EV_departure", "SoC_ref", "SoC_arr"])
                        
     for w in range(int((config["nb_days"]-1)/7) + 1): # loop for each week
         t_arr_w, t_dep_w, charge_length_min = weekly_charging(config, t_arr, t_dep, dur_travel) 
 
         for i in range(len(t_arr_w)):
             P_EV[w*weekly_timesteps+t_arr_w[i]:w*weekly_timesteps+t_arr_w[i]+charge_length_min[i]] = config["EV_data"]["Pmax"] # Add the consumption to the EV load profile
-            Flex_EV[w*weekly_timesteps+t_arr_w[i]:w*weekly_timesteps+t_dep_w[i]] = 1 
+        #    Flex_EV[w*weekly_timesteps+t_arr_w[i]:w*weekly_timesteps+t_dep_w[i]] = 1 
 
         for i in range(len(t_arr_w)):
 
@@ -224,12 +226,23 @@ def EV_simulate(occupancy: np.ndarray[Any, np.dtype[np.bool_]], config: dict)-> 
             EV_charge = int(charge_length_min[i])
 
             P_EV[EV_arrive: EV_arrive + EV_charge] = config["EV_data"]["Pmax"] 
-            
-            Flex_EV[EV_arrive:EV_leave] = 1 
+    
+            Flex_EV.loc[EV_arrive:EV_leave, "EV_plugged"] = 1
+            Flex_EV.loc[EV_arrive, "EV_arrival"] = 1
+            Flex_EV.loc[EV_leave, "EV_departure"] = 1
+
+            EV_energy = (EV_charge / 60) * config["EV_data"]["Pmax"]
+            Flex_EV.loc[EV_arrive, "SoC_arr"] = config["EV_data"]["SoC_target"] - EV_energy/config["EV_data"]["Capacity"]
+            Flex_EV.loc[EV_arrive, "SoC_ref"] = Flex_EV.loc[EV_arrive, "SoC_arr"] + config["EV_data"]["Pmax"]/60/config["EV_data"]["Capacity"]
+            for j in range(EV_arrive+1, EV_leave+1):
+                Flex_EV.loc[j, "SoC_ref"] = Flex_EV.loc[j-1, "SoC_ref"] + config["EV_data"]["Pmax"]/60/config["EV_data"]["Capacity"]
+
+            if Flex_EV.loc[EV_leave, "SoC_ref"] < config["EV_data"]["SoC_target"]:
+                print(f"Warning: EV SoC exceeds maximum at day {w*7 + (t_arr_w[i]//1440)+1}, arrival time {t_arr_w[i]%1440//60}:{t_arr_w[i]%60}.")
 
         # Assume the EV starts connected at home at the beginning of the simulation
-        if w == 0 and len(t_arr_w) > 0:
-            Flex_EV[:t_dep_w[0]] = 1
+        #if w == 0 and len(t_arr_w) > 0:
+        #    Flex_EV[:t_dep_w[0]] = 1
 
     # Trim P_EV and Flex_EV to the correct length
     P_EV = P_EV[:config["nb_days"] * 60 * 24 ]

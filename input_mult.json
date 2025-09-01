@@ -4,8 +4,9 @@
     "timestep": 60,
     "year": 2024,                  
     "start_day": 0,
-    "flexibility": true,                     
-               
+    "flexibility": true,
+    "output": "csv", 
+
     "appliances": {
         "P_WashingMachine": 0.65,
         "P_TumbleDryer": 0.6,

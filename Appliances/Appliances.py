@@ -41,6 +41,6 @@ def add_EV(df_P, df_Flex, family, config):
     P_EV, Flex_EV = EV_simulate(EV_occ,config)
     # EV_flex = pd.DataFrame({'EVCharging':load_profile, 'Occupancy':occupancy})
     df_P['P_EV'] =  P_EV.tolist()
-    df_Flex['EV'] = Flex_EV.tolist()
+    df_Flex = pd.concat([df_Flex, Flex_EV], axis=1)
     
     return df_P, df_Flex

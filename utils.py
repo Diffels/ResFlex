@@ -9,9 +9,10 @@ from datetime import datetime
 
 """Saving functions to create files with simulation results"""
 
-def save_one(config, filetype, df_P, df_Flex, dic_Param):
+def save_one(config, df_P, df_Flex, dic_Param):
+    filetype=config['output']
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    add_indices(df_P, df_Flex, config)  # Add indices to the dataframes
+    set_timesteps(df_P, df_Flex, config)  # Add indices to the dataframes
     if filetype == 'csv':
         csv_filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), f"Results/Single/{current_time}.csv")
         df_P.to_csv(csv_filename, index=True)
@@ -24,11 +25,15 @@ def save_one(config, filetype, df_P, df_Flex, dic_Param):
     with open(json_filename, 'w', encoding="utf-8") as json_file:
         json.dump(dic_Param, json_file, ensure_ascii=False, indent=4)
 
-def save_all(config, filetype, dic_df_P, dic_df_Flex, dic_Params, houses_params):
+def save_all(config, dic_df_P, dic_df_Flex, dic_Params, houses_params):
+    filetype = config['output']
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), f"Results/Multiple/{current_time}."+filetype)
-    flex_filename = filename.replace('.'+filetype, '_Flex.'+filetype)
+    # Create a directory for this simulation
+    out_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Results", "Multiple", current_time)
+    os.makedirs(out_dir, exist_ok=True)
     if filetype == 'xlsx':
+        filename = os.path.join(out_dir, "ref.xlsx")
+        flex_filename = os.path.join(out_dir, "flex.xlsx")
         with pd.ExcelWriter(filename, engine="xlsxwriter") as writer:
             for sheet_name, rows in dic_df_P.items():
                 df = pd.DataFrame(rows)  # Convert list of dicts to DataFrame
@@ -39,11 +44,17 @@ def save_all(config, filetype, dic_df_P, dic_df_Flex, dic_Params, houses_params)
                     df = pd.DataFrame(rows)  # Convert list of dicts to DataFrame
                     df.to_excel(writer_F, sheet_name=sheet_name, index=True)
     elif filetype == 'csv':
-        with open(filename, 'w', encoding="utf-8") as file, open(flex_filename, 'w', encoding="utf-8") as flex_file:
-            for u, (df_P, df_Flex) in enumerate(zip(dic_df_P.values(), dic_df_Flex.values())):
+        for u, (df_P, df_Flex) in enumerate(zip(dic_df_P.values(), dic_df_Flex.values())):
+            filename = os.path.join(out_dir, f"household_{u+1}_ref.csv")
+            flex_filename = os.path.join(out_dir, f"household_{u+1}_flex.csv")
+            with open(filename, 'w', encoding="utf-8") as file, open(flex_filename, 'w', encoding="utf-8") as flex_file:
                 df_P.to_csv(file, mode='a', header=True if u == 0 else False)
                 df_Flex.to_csv(flex_file, mode='a', header=True if u == 0 else False)
+
+
     elif filetype == 'nc':
+        filename = os.path.join(out_dir, "ref.nc")
+        flex_filename = os.path.join(out_dir, "flex.nc")
         # Convert data to xarray Dataset and save to NetCDF
         ds_P = xr.Dataset({house: xr.DataArray(data=df.values, dims=["time", "variables"], coords={"time": df.index, "variables": df.columns}) for house, df in dic_df_P.items()})
         ds_P.to_netcdf(filename)
@@ -53,8 +64,8 @@ def save_all(config, filetype, dic_df_P, dic_df_Flex, dic_Params, houses_params)
 
     else:
         raise ValueError(f"Unsupported file type for saving: {filetype}")
-
-    with open(filename.replace('.xlsx', '_Param.json'), 'w', encoding="utf-8") as json_file:
+    
+    with open(os.path.join(out_dir, "Param.json"), 'w', encoding="utf-8") as json_file:
         json.dump(dic_Params, json_file, ensure_ascii=False, indent=4)
 
 """Plotting functions for the simulation results"""
@@ -265,7 +276,8 @@ def set_timesteps(df_P, df_Flex, config):
     # For binary (or categorical) values and setpoint steps, take the last value in the interval
     df_Flex_newindex = pd.DataFrame(index=pd.date_range(start=start_date, end=end_date, freq=f'{ts}min'))[:-1]
     df_Flex_newindex['Occupancy'] = df_Flex['Occupancy'].resample(f'{ts}min').last()
-    df_Flex_newindex['EV'] = df_Flex['EV'].resample(f'{ts}min').last()
+    df_Flex_newindex[['EV_plugged','EV_arrival','EV_departure','SoC_ref']] = df_Flex[['EV_plugged','EV_arrival','EV_departure', 'SoC_ref']].resample(f'{ts}min').last()
+    df_Flex_newindex['SoC_arr'] = df_Flex['SoC_arr'].resample(f'{ts}min').max()
     df_Flex_newindex['Tset'] = df_Flex['Tset'].resample(f'{ts}min').last()
     # For continuous values, take the mean in the interval
     df_Flex_newindex[['Tref', 'Twall', 'Tout']] = df_Flex[['Tref', 'Twall', 'Tout']].resample(f'{ts}min').mean()
@@ -341,6 +353,3 @@ def create_params(config):
     # Create the list of parameters for each household
     params = get_list_param(config)
     return params
-
-def change_timestep():
-    return

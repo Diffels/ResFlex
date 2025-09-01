@@ -7,7 +7,7 @@ import json
 import Appliances.Appliances as Appliances
 import utils
 
-def simulate_all(config, filetype='xlsx', plot_res=False, print_res=True):
+def simulate_all(config, save=True, plot_res=False, print_res=True):
     houses_params = utils.create_params(config)
     dic_df_P, dic_df_Flex, dic_Params = {}, {}, {}
 
@@ -17,18 +17,18 @@ def simulate_all(config, filetype='xlsx', plot_res=False, print_res=True):
         dic_df_P[user], dic_df_Flex[user], dic_Params[user] = one_profile(house_params)
 
 
-    if filetype is not None: 
+    if save: 
         print("Saving results...")
-        utils.save_all(config, filetype, dic_df_P, dic_df_Flex, dic_Params, houses_params)
+        utils.save_all(config, dic_df_P, dic_df_Flex, dic_Params, houses_params)
 
 
     if print_res: utils.print_all(config, dic_df_P, dic_df_Flex, dic_Params)
     if plot_res: utils.plot_all(config, dic_df_P, dic_df_Flex, dic_Params)
 
-def simulate_one(config, filetype='csv', plot_res=False, print_res=True):
+def simulate_one(config, save=True, plot_res=False, print_res=True):
     df_P, df_Flex, dic_Param = one_profile(config)
 
-    if filetype is not None: utils.save_one(config, filetype, df_P, df_Flex, dic_Param)
+    if save: utils.save_one(config, df_P, df_Flex, dic_Param)
 
     if print_res: utils.print_one(config, df_P, df_Flex, dic_Param)
     if plot_res:
