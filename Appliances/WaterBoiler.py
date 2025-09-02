@@ -57,7 +57,7 @@ def WB_simulate(mDHW, config):
     wb_data=config['WB_data']
 
     #P_use = mDHW['mDHW']
-    P_use = mDHW['mDHW'] * wb_data['rho'] * (wb_data['T_set'] - wb_data['T_in']) * wb_data['specific_heat']*60  # [J]*60 seconds
+    P_use = mDHW['mDHW'] * wb_data['rho'] * (wb_data['T_set'] - wb_data['T_amb']) * wb_data['specific_heat']*60  # [J]*60 seconds
 
     sim_len=len(P_use)
     P_WB = np.zeros(sim_len)
@@ -65,8 +65,6 @@ def WB_simulate(mDHW, config):
     T_set = np.repeat(wb_data['T_set'], sim_len)
     T_ref = np.repeat(wb_data['T_in'], sim_len)
     T_ref[0] = wb_data['T_set']
-    T_out = 20 # Temperature in the room
-
     
     for i in range(sim_len-1):
         if T_ref[i] < T_set[i]:P_WB[i] = wb_data['Pmax']
