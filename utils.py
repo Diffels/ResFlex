@@ -276,11 +276,10 @@ def set_timesteps(df_P, df_Flex, config):
     df_Flex_newindex = pd.DataFrame(index=pd.date_range(start=start_date, end=end_date, freq=f'{ts}min'))[:-1]
     df_Flex_newindex['Occupancy'] = df_Flex['Occupancy'].resample(f'{ts}min').last()
     df_Flex_newindex[['EV_plugged','SoC_ref_EV']] = df_Flex[['EV_plugged','SoC_ref_EV']].resample(f'{ts}min').last()
-
-    df_Flex_newindex['T_set_HP'] = df_Flex['T_set_HP'].resample(f'{ts}min').last()
+    df_Flex_newindex[['T_ref_WB', 'T_set_WB']] = df_Flex[['T_ref_WB', 'T_set_WB']].resample(f'{ts}min').last()
+    df_Flex_newindex[['T_set_HP','P_loss_HP']] = df_Flex[['T_set_HP','P_loss_HP']].resample(f'{ts}min').last()
     # For continuous values, take the mean in the interval
     df_Flex_newindex[['T_ref_HP', 'T_wall_HP', 'T_out_HP']] = df_Flex[['T_ref_HP', 'T_wall_HP', 'T_out_HP']].resample(f'{ts}min').mean()
-    df_Flex_newindex[['T_ref_WB', 'T_set_WB']] = df_Flex[['T_ref_WB', 'T_set_WB']].resample(f'{ts}min').last()
     df_Flex_newindex[['P_use_WB', 'P_loss_WB']] = df_Flex[['P_use_WB', 'P_loss_WB']].resample(f'{ts}min').mean()
     
     # For ponctual variables, take the maximum
