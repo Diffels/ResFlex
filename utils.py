@@ -275,14 +275,16 @@ def set_timesteps(df_P, df_Flex, config):
     # For binary (or categorical) values and setpoint steps, take the last value in the interval
     df_Flex_newindex = pd.DataFrame(index=pd.date_range(start=start_date, end=end_date, freq=f'{ts}min'))[:-1]
     df_Flex_newindex['Occupancy'] = df_Flex['Occupancy'].resample(f'{ts}min').last()
-    df_Flex_newindex[['EV_plugged','EV_arrival','EV_departure','SoC_ref']] = df_Flex[['EV_plugged','EV_arrival','EV_departure', 'SoC_ref']].resample(f'{ts}min').last()
-    df_Flex_newindex['SoC_arr'] = df_Flex['SoC_arr'].resample(f'{ts}min').max()
-    df_Flex_newindex['T_set'] = df_Flex['T_set'].resample(f'{ts}min').last()
-    # For continuous values, take the mean in the interval
-    df_Flex_newindex[['Tref', 'Twall', 'Tout']] = df_Flex[['Tref', 'Twall', 'Tout']].resample(f'{ts}min').mean()
-    df_Flex_newindex[['T_ref', 'T_set']] = df_Flex[['T_ref', 'T_set']].resample(f'{ts}min').last()
-    df_Flex_newindex[['P_use', 'P_loss']] = df_Flex[['P_use', 'P_loss']].resample(f'{ts}min').mean()
+    df_Flex_newindex[['EV_plugged','SoC_ref_EV']] = df_Flex[['EV_plugged','SoC_ref_EV']].resample(f'{ts}min').last()
 
+    df_Flex_newindex['T_set_HP'] = df_Flex['T_set_HP'].resample(f'{ts}min').last()
+    # For continuous values, take the mean in the interval
+    df_Flex_newindex[['T_ref_HP', 'T_wall_HP', 'T_out_HP']] = df_Flex[['T_ref_HP', 'T_wall_HP', 'T_out_HP']].resample(f'{ts}min').mean()
+    df_Flex_newindex[['T_ref_WB', 'T_set_WB']] = df_Flex[['T_ref_WB', 'T_set_WB']].resample(f'{ts}min').last()
+    df_Flex_newindex[['P_use_WB', 'P_loss_WB']] = df_Flex[['P_use_WB', 'P_loss_WB']].resample(f'{ts}min').mean()
+    
+    # For ponctual variables, take the maximum
+    df_Flex_newindex[['EV_arrival', 'EV_departure', 'SoC_arr_EV']] = df_Flex[['EV_arrival', 'EV_departure', 'SoC_arr_EV']].resample(f'{ts}min').max()
     return df_P, df_Flex_newindex
 
 

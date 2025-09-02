@@ -170,7 +170,7 @@ def HP_simulate(T_set, config):
     P_ref, T, T_wall, P_loss = heating_dynamics(config['HP_data'], config['nb_days'], T_set, T_out, 
                                                 P_irr,config['HP_data']['P_nom']*config['HP_data']['COP'])
     # Create DataFrame for the flexibility data
-    Flex_HP = pd.DataFrame({'Tset': T_set[:-1],'Tref': T,'Twall': T_wall, 'Tout': T_out,'Ploss': P_loss}, index=None)
+    Flex_HP = pd.DataFrame({'T_set_HP': T_set[:-1],'T_ref_HP': T,'T_wall_HP': T_wall, 'T_out_HP': T_out,'P_loss_HP': P_loss}, index=None)
     return P_ref, Flex_HP
 
 

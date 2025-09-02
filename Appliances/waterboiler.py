@@ -80,5 +80,5 @@ def WB_simulate(mDHW, config):
     #mDHW['Power'] = mDHW['Power'] * 60  # kW
     #mDHW['Power_limited'] = limit_power(mDHW['Power'], wb_data['Pmax']*1e3)  
 
-    df_Flex = pd.DataFrame({'P_use': P_use[:-1],'P_loss': P_loss[:-1],'T_set': T_set[:-1],'T_ref': T_ref[:-1]})
+    df_Flex = pd.DataFrame({'P_use_WB': P_use[:-1],'P_loss_WB': P_loss[:-1],'T_set_WB': T_set[:-1],'T_ref_WB': T_ref[:-1]})
     return P_WB[:-1], df_Flex
