@@ -354,3 +354,82 @@ def create_params(config):
     # Create the list of parameters for each household
     params = get_list_param(config)
     return params
+
+
+def plot_data(df_P, df_flex, ):
+    """
+    Plots Water Boiler, Heat Pump, and EV data for the full time horizon,
+    saves the figure with a timestamp in 'plots/'.
+    """
+
+    # Use DataFrame index for time axis (datetime or integer index)
+    time_steps = df_P.index
+
+    # Make sure output folder exists
+    os.makedirs("plots", exist_ok=True)
+
+    # Timestamp for filename
+    timestamp = datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
+    filename = f"plots/{timestamp}.png"
+
+    # Create figure with more vertical spacing
+    fig, axes = plt.subplots(3, 1, figsize=(14, 16), constrained_layout=True)
+
+    # ---------------------- Water Boiler ----------------------
+    ax1 = axes[0]
+    ax1.plot(time_steps, df_flex["T_ref_WB"], label="Température de Référence (°C)", color="blue", lw=2)
+    ax1.set_title("Water Boiler", fontsize=14, pad=15)
+    ax1.set_ylabel("Temp. (°C)")
+    ax1.legend(loc="upper left")
+
+    ax1b = ax1.twinx()
+    ax1b.plot(time_steps, df_P["P_WB"] * 1000, label="Puissance de Référence (W)", color="green", lw=2, linestyle="--")
+    # ax1b.plot(time_steps, df_flex["P_use_WB"], label="P_use (W)", color="orange", lw=2, linestyle="--")
+    ax1b.plot(time_steps, df_flex["P_loss_WB"], label="Pertes (W)", color="red", lw=2, linestyle="--")
+    ax1b.set_ylabel("Puissance (W)")
+    ax1b.legend(loc="upper right")
+
+    # ---------------------- Heat Pump ----------------------
+    ax2 = axes[1]
+    ax2.plot(time_steps, df_flex["T_ref_HP"], label="Température de Référence (°C)", color="blue", lw=2)
+    ax2.plot(time_steps, df_flex["T_set_HP"], label="Température setpoint (°C)", color="purple", lw=2)
+    ax2.plot(time_steps, df_flex["T_wall_HP"], label="Température Wall (°C)", color="orange", lw=2)
+    ax2.plot(time_steps, df_flex["T_out_HP"], label="Température Extérieure (°C)", color="darkblue", lw=2)
+    ax2.set_title("Heat Pump", fontsize=14, pad=15)
+    ax2.set_ylabel("Temp. (°C)")
+    ax2.set_ylim(0, 40)
+    ax2.legend(loc="upper left")
+
+    ax2b = ax2.twinx()
+    ax2b.plot(time_steps, df_P["P_HP"] * 1000, label="Puissance de Référence (W)", color="green", lw=2, linestyle="--")
+    ax2b.plot(time_steps, df_flex["P_loss_HP"], label="Perte de Puissance (W)", color="red", lw=2, linestyle="--")
+    ax2b.set_ylabel("Puissance (W)")
+    ax2b.legend(loc="upper right")
+
+    # ---------------------- EV ----------------------
+    ax3 = axes[2]
+    ax3.step(time_steps, df_flex["EV_plugged"], where="post", label="Statut EV (Branché)", lw=2, color="black")
+    ax3.plot(time_steps, df_flex["SoC_ref_EV"], label="SOC", lw=2, color="blue")
+
+    # Mark arrivals and departures
+    arr_indices = df_flex.index[df_flex["EV_arrival"] == 1].tolist()
+    dep_indices = df_flex.index[df_flex["EV_departure"] == 1].tolist()
+    ax3.scatter(arr_indices, df_flex.loc[arr_indices, "EV_plugged"], label="Arrivée", color="green", marker="o", s=60)
+    ax3.scatter(dep_indices, df_flex.loc[dep_indices, "EV_plugged"], label="Départ", color="red", marker="x", s=60)
+
+    ax3.set_title("Electric Vehicle", fontsize=14, pad=15)
+    ax3.set_xlabel("Time Steps")
+    ax3.set_ylabel("Statut")
+    ax3.legend(loc="upper left")
+
+    ax3b = ax3.twinx()
+    ax3b.plot(time_steps, df_P["P_EV"] * 1000, label="Puissance de Référence (W)", color="green", lw=2, linestyle="--")
+    ax3b.set_ylabel("Puissance (W)")
+    ax3b.legend(loc="upper right")
+
+    # ---------------------- Final Layout ----------------------
+    fig.suptitle("Résumé du Profil:", fontsize=18, y=0.995)
+    
+    # Save figure
+    fig.savefig(filename, dpi=300)
+    plt.close(fig)

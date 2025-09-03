@@ -82,7 +82,10 @@ def one_profile(config):
     if config['HP']: df_P, df_Flex = Appliances.add_HP(df_P, df_Flex, family, config)
     if config['WB']: df_P, df_Flex = Appliances.add_WB(df_P, df_Flex, family, config)
 
+    utils.plot_data(df_P, df_Flex)
     df_P, df_Flex = utils.set_timesteps(df_P, df_Flex, config) # changer timestep
+    # To compare with, after resampling:
+    # utils.plot_data(df_P, df_Flex)
 
     config = add_ComFlex_params(config)
 
@@ -90,6 +93,7 @@ def one_profile(config):
     execution_time = end_time - start_time
     print(f"Simulation is done. Execution time: {execution_time:.2f} s.") 
     return df_P, df_Flex, config
+
 
 if __name__ == '__main__':
     mult = True
@@ -101,3 +105,4 @@ if __name__ == '__main__':
         file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "input_single.json")
         with open(file_path, 'r', encoding="utf-8") as file: config = json.load(file)  # Load the JSON data into a Python dictionary
         simulate_one(config, print_res=False, plot_res=True)
+

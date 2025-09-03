@@ -1,7 +1,7 @@
 {  
     "nb_households": 3,
     "nb_days": 1,
-    "timestep": 60,
+    "timestep": 15,
     "year": 2024,                  
     "start_day": 0,
     "flexibility": true,
