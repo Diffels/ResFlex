@@ -64,7 +64,7 @@ def save_all(config, dic_df_P, dic_df_Flex, dic_Params, houses_params):
     else:
         raise ValueError(f"Unsupported file type for saving: {filetype}")
     
-    with open(os.path.join(out_dir, "Param.json"), 'w', encoding="utf-8") as json_file:
+    with open(os.path.join(out_dir, "users.json"), 'w', encoding="utf-8") as json_file:
         json.dump(dic_Params, json_file, ensure_ascii=False, indent=4)
 
 """Plotting functions for the simulation results"""
