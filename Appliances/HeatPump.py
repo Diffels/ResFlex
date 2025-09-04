@@ -118,7 +118,7 @@ def weather_import(house: House, weather_path, start_day, nb_days):
     
     return T_out[start_day*24*60:(start_day+nb_days)*24*60] , (Q_dot_North + Q_dot_East + Q_dot_West + Q_dot_South)[start_day*24*60:(start_day+nb_days)*24*60] 
 
-def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom=8):
+def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom):
     n_ts = 24*60        # Number of time steps in a day (1 min intervals)
     abs = 0.5           # Temperature difference threshold for HP control
     ACH = 0.1           # Air changes per hour [1/h]
@@ -136,31 +136,36 @@ def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom=8):
     P_loss = np.zeros(sim_days * n_ts)  # Power loss at each time step
 
     T_in[0] = T_set[0]  # Initial indoor temperature
-    T_wall[0] = T_set[0]  # Initial wall temperature
-    HP_isoff = 0  # Initial HP power
+    T_wall[0] = (T_set[0]+T_out[0])/2  # Initial wall temperature
+    HP[0] = 0  # Initial HP power
+
     for ts in range(1,sim_days*n_ts):  # Loop over days
         # Solve heating dynamics
         #P_airloss, P_wallloss = heat_loss(house, T_in[ts-1], T_wall[ts-1], T_out[ts-1+n_ts*start_day], P_irr[ts-1+n_ts*start_day])
         P_aircond = k_wall*house['U_tot'] * (T_in[ts-1] - T_wall[ts-1]) # Divided by 2 to account for half the thickness of the wall
-        P_wallloss = (1-k_wall)*house['U_wall'] * A_wall * (T_wall[ts-1] - T_out[ts-1]) - P_aircond  # Conduction losses through walls divided by 2 to account for half the thickness of the wall
+        P_wallloss = ((1-k_wall)*house['U_wall'] * A_wall * (T_wall[ts-1] - T_out[ts-1]) - P_aircond)/1e3  # Conduction losses through walls divided by 2 to account for half the thickness of the wall
         Q_exfiltration = (ACH/60)*house['C_air']*(T_in[ts-1] - T_out[ts-1])/60 # in W: [1/min] * m3 * kg/m3 * J/(kg.K) * K / 60s
-        P_airloss = P_aircond - P_irr[ts-1]/10 + Q_exfiltration # Net losses including solar gain
+        P_airloss = (P_aircond - P_irr[ts-1]/10 + Q_exfiltration)/1e3 # Net losses including solar gain [kW]
         P_loss[ts] = P_wallloss # Total losses
         
-        if T_in[ts-1] < T_set[ts-1]:# - abs*HP_isoff:  
-            HP[ts] = P_nom  # HP is on
-            HP_isoff = 0
-        else: 
-            HP[ts] = 0  # HP is off
-            HP_isoff = 1
+        if T_in[ts-1] < T_set[ts-1] - abs: HP[ts] = P_nom
+        elif T_in[ts-1] > T_set[ts-1] + abs: HP[ts] = 0
+        else: HP[ts] = HP[ts-1]
 
-        dTair = (HP[ts] - P_airloss) / (house['C_air']+k_wall*house['C_env'])
-        dTwall = (-P_wallloss) / ((1-k_wall)*house['C_env'])
+        # if T_in[ts-1] < T_set[ts-1]:# - abs*HP_isoff:  
+        #     HP[ts] = P_nom # HP is on
+        #     HP_isoff = 0
+        # else: 
+        #     HP[ts] = 0  # HP is off
+        #     HP_isoff = 1
+
+        dTair = (HP[ts] - P_airloss)*1e3 / (house['C_air']+k_wall*house['C_env'])
+        dTwall = (-P_wallloss) *1e3/ ((1-k_wall)*house['C_env'])
         T_in[ts] = T_in[ts-1] + dTair*60               # Update indoor temperature
         T_wall[ts] = T_wall[ts-1] + dTwall*60          # Update wall temperature
         
 
-    return HP, T_in, T_wall, P_loss  # Return HP power, indoor and wall temperature, Power losses
+    return HP, T_in, T_wall, P_airloss  # Return HP power, indoor and wall temperature, Power losses
 
 def HP_simulate(T_set, config):     
     T_out, P_irr = weather_import(config['HP_data'], os.path.join(os.path.dirname(__file__), 'database', 'Meteo2022_Liege.xlsx'),

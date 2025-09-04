@@ -105,4 +105,3 @@ if __name__ == '__main__':
         file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "input_single.json")
         with open(file_path, 'r', encoding="utf-8") as file: config = json.load(file)  # Load the JSON data into a Python dictionary
         simulate_one(config, print_res=False, plot_res=True)
-

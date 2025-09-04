@@ -383,10 +383,11 @@ def plot_data(df_P, df_flex, ):
     ax1.legend(loc="upper left")
 
     ax1b = ax1.twinx()
-    ax1b.plot(time_steps, df_P["P_WB"] * 1000, label="Puissance de Référence (W)", color="green", lw=2, linestyle="--")
-    # ax1b.plot(time_steps, df_flex["P_use_WB"], label="P_use (W)", color="orange", lw=2, linestyle="--")
-    ax1b.plot(time_steps, df_flex["P_loss_WB"], label="Pertes (W)", color="red", lw=2, linestyle="--")
-    ax1b.set_ylabel("Puissance (W)")
+    ax1b.plot(time_steps, df_P["P_WB"], label="Puissance de Référence (kW)", color="green", lw=2, linestyle="--")
+    ax1b.plot(time_steps, df_flex["P_use_WB"], label="P_use (kW)", color="orange", lw=2, linestyle="--")
+    ax1b.plot(time_steps, df_flex["P_loss_WB"], label="Pertes (kW)", color="red", lw=2, linestyle="--")
+    # ax1b.plot(time_steps, df_flex["Water_use"], label="Conso (L)", color="pink", lw=2)
+    ax1b.set_ylabel("Puissance (kW)")
     ax1b.legend(loc="upper right")
 
     # ---------------------- Heat Pump ----------------------
@@ -401,9 +402,9 @@ def plot_data(df_P, df_flex, ):
     ax2.legend(loc="upper left")
 
     ax2b = ax2.twinx()
-    ax2b.plot(time_steps, df_P["P_HP"] * 1000, label="Puissance de Référence (W)", color="green", lw=2, linestyle="--")
-    ax2b.plot(time_steps, df_flex["P_loss_HP"], label="Perte de Puissance (W)", color="red", lw=2, linestyle="--")
-    ax2b.set_ylabel("Puissance (W)")
+    ax2b.plot(time_steps, df_P["P_HP"], label="Puissance de Référence (kW)", color="green", lw=2, linestyle="--")
+    ax2b.plot(time_steps, df_flex["P_loss_HP"], label="Perte de Puissance (kW)", color="red", lw=2, linestyle="--")
+    ax2b.set_ylabel("Puissance (kW)")
     ax2b.legend(loc="upper right")
 
     # ---------------------- EV ----------------------
@@ -423,8 +424,8 @@ def plot_data(df_P, df_flex, ):
     ax3.legend(loc="upper left")
 
     ax3b = ax3.twinx()
-    ax3b.plot(time_steps, df_P["P_EV"] * 1000, label="Puissance de Référence (W)", color="green", lw=2, linestyle="--")
-    ax3b.set_ylabel("Puissance (W)")
+    ax3b.plot(time_steps, df_P["P_EV"] * 1000, label="Puissance de Référence (kW)", color="green", lw=2, linestyle="--")
+    ax3b.set_ylabel("Puissance (kW)")
     ax3b.legend(loc="upper right")
 
     # ---------------------- Final Layout ----------------------
