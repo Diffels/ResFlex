@@ -261,29 +261,142 @@ create_params takes a config file and creates a list of parameters for each hous
 def set_timesteps(df_P, df_Flex, config):
     """Set the time index of the dataframes based on the configuration and desired timestep."""
 
-    ts = config['timestep'] # Specified timestep in minutes
+    ts = config['timestep']  # timestep in minutes
+    # # NB: Trips last at least 30 minutes so no overlapping if ts <= 30min
+    if ts > 30:
+        print(f"[WARNING] Given timestep ({ts} min) might be too large regarding EV usage patterns. Please check data consistency or reduce below 30 min.")
 
     start_date = datetime(2024, 1, 1) + pd.Timedelta(days=config["start_day"])
     end_date = start_date + pd.Timedelta(days=config["nb_days"])
-    time_index = pd.date_range(start=start_date, end=end_date, freq=f"1min")  # Adjust frequency based on timestep
+    time_index = pd.date_range(start=start_date, end=end_date, freq="1min")
     df_P.index = time_index[:len(df_P)] if len(time_index) >= len(df_P) else time_index
     df_Flex.index = time_index[:len(df_Flex)] if len(time_index) >= len(df_Flex) else time_index
+    
+    # ---- Resample signals ----
+    df_P = df_P.resample(f"{ts}min").mean()
 
-    # Take the mean of the power for df_P with new timestep, interpolate in case of missing values (uncessery i think)
-    df_P = df_P.resample(f'{ts}min').mean().interpolate()
- 
-    # For binary (or categorical) values and setpoint steps, take the last value in the interval
-    df_Flex_newindex = pd.DataFrame(index=pd.date_range(start=start_date, end=end_date, freq=f'{ts}min'))[:-1]
-    df_Flex_newindex['Occupancy'] = df_Flex['Occupancy'].resample(f'{ts}min').last()
-    df_Flex_newindex[['EV_plugged','SoC_ref_EV']] = df_Flex[['EV_plugged','SoC_ref_EV']].resample(f'{ts}min').last()
-    df_Flex_newindex[['T_ref_WB', 'T_set_WB']] = df_Flex[['T_ref_WB', 'T_set_WB']].resample(f'{ts}min').last()
-    df_Flex_newindex[['T_set_HP','P_loss_HP']] = df_Flex[['T_set_HP','P_loss_HP']].resample(f'{ts}min').last()
-    # For continuous values, take the mean in the interval
+    df_Flex_newindex = pd.DataFrame(index=pd.date_range(start=start_date, end=end_date, freq=f"{ts}min"))[:-1]
+
+    df_Flex_newindex['Occupancy'] = df_Flex['Occupancy'].resample(f"{ts}min").last() 
+    df_Flex_newindex[['SoC_ref_EV']] = (df_Flex[['SoC_ref_EV']].resample(f"{ts}min").last())    
+    df_Flex_newindex[['T_ref_WB', 'T_set_WB']] = df_Flex[['T_ref_WB', 'T_set_WB']].resample(f'{ts}min').mean()
+    df_Flex_newindex[['T_set_HP','P_loss_HP']] = df_Flex[['T_set_HP','P_loss_HP']].resample(f'{ts}min').mean()
     df_Flex_newindex[['T_ref_HP', 'T_wall_HP', 'T_out_HP']] = df_Flex[['T_ref_HP', 'T_wall_HP', 'T_out_HP']].resample(f'{ts}min').mean()
     df_Flex_newindex[['P_use_WB', 'P_loss_WB']] = df_Flex[['P_use_WB', 'P_loss_WB']].resample(f'{ts}min').mean()
     
-    # For ponctual variables, take the maximum
-    df_Flex_newindex[['EV_arrival', 'EV_departure', 'SoC_arr_EV']] = df_Flex[['EV_arrival', 'EV_departure', 'SoC_arr_EV']].resample(f'{ts}min').max()
+    df_Flex_newindex["EV_arrival"] = 0
+    df_Flex_newindex["EV_departure"] = 0
+    df_Flex_newindex["EV_plugged"] = 0
+
+    # ---- Rebuild EV_plugged from SoC ----
+    # Compute discrete derivative of SoC
+    soc = df_Flex_newindex["SoC_ref_EV"]
+    dsoc = soc.diff()
+
+    # Rule: if SoC decreases, EV must be away
+    df_Flex_newindex.loc[dsoc == 0, "EV_plugged"] = 0  
+    # Rule: if SoC increases, EV must be home
+    df_Flex_newindex.loc[dsoc > 1e-5, "EV_plugged"] = 1 
+
+    # Constant SoC case:
+
+    flat = dsoc.abs() <= 1e-5    
+    df_Flex_newindex.loc[flat & (soc >= 0.01), "EV_plugged"] = 1
+    df_Flex_newindex.loc[flat & (soc == 0), "EV_plugged"] = 0
+
+    # ---- Enforce strict step SoC ----
+    soc_step = soc.copy()
+    soc_step[df_Flex_newindex["EV_plugged"] == 0] = 0  # away → force to 0
+    soc_step[df_Flex_newindex["EV_plugged"] == 1] = soc_step.ffill()  # home → hold last value
+
+    s = df_Flex_newindex['EV_plugged'].astype(int)
+    diff = s.diff()
+    df_Flex_newindex['EV_departure'] = 0
+    df_Flex_newindex['EV_arrival'] = 0
+    df_Flex_newindex.loc[diff == -1, 'EV_departure'] = 1 # plugged → unplugged
+    df_Flex_newindex.loc[diff == 1, 'EV_arrival'] = 1 # unplugged → plugged 
+
+    # Assign SOC values where soc_arr is True
+    # Initialize column
+    df_Flex_newindex["SoC_arr_EV"] = 0.0
+    soc_arr_values = df_Flex["SoC_arr_EV"][df_Flex["SoC_arr_EV"] != 0]
+    
+    soc_index = 0 
+    for index, ev_arrival in zip(df_Flex_newindex.index, df_Flex_newindex['EV_arrival']):
+        if ev_arrival:  # if True, EV has arrived
+            df_Flex_newindex.loc[index, 'SoC_arr_EV'] = soc_arr_values.iloc[soc_index]
+            soc_index += 1
+
+
+
+
+
+    # # ---- Assign trip behavior ----
+    # # Assume it's per default plugged
+    # df_Flex_newindex["EV_plugged"] = 1
+    # df_Flex_newindex["EV_arrival"] = 0
+    # df_Flex_newindex["EV_departure"] = 0
+    # # df_Flex_newindex["SoC_ref_EV"] = 0
+
+    # s = df_Flex['EV_plugged'].astype(int)
+    # diff = s.diff()
+    # tdep = df_Flex.index[diff == -1]  # plugged → unplugged
+    # tret = df_Flex.index[diff == 1]   # unplugged → plugged
+
+    # # If no events:
+    # if len(tdep) == 0 or len(tret) == 0:
+    #     return df_P, df_Flex_newindex
+
+    # # If the first event is a return -> add artificial departure at first index
+    # if tdep[0] > tret[0]:
+    #     tdep = pd.Index([df_Flex.index[0]]).append(tdep)
+    # # If the last event is a departure -> add artificial return at last index
+    # if tdep[-1] > tret[-1]:
+    #     tret = tret.append(pd.Index([df_Flex.index[-1]]))
+
+    # trips = pd.DataFrame({"tdep": tdep.values, "tret": tret.values})
+    # trips["duration"] = trips["tret"] - trips["tdep"]
+    
+
+    # # Clip the duration to ts to avoid overlaping
+    # for t in range(len(trips)):
+    #     if trips['duration'].iloc[t] < pd.Timedelta(minutes=ts):
+    #         new_return = trips.at[t, 'tdep'] + pd.Timedelta(minutes=ts)
+    #         if t < len(trips) - 1 and new_return >= trips.at[t+1, 'tdep']:
+    #             # avoid overlap with next departure
+    #             new_return = trips.at[t+1, 'tdep'] - pd.Timedelta(minutes=ts)
+    #         if new_return > df_Flex.index[-1]:
+    #             new_return = df_Flex.index[-1]
+    #         trips.at[t, 'tret'] = new_return
+    #         trips.at[t, 'duration'] = trips.at[t, 'tret'] - trips.at[t, 'tdep']
+
+    #         # Condition if both end up to last index:
+    #         if trips.at[t, 'tdep'] == trips.at[t, 'tret']:
+    #             trips.drop(t, inplace=True) 
+
+    # # ---- Drop pathological zero-duration trips ----
+    # trips = trips[trips['duration'] > pd.Timedelta(0)]
+
+    # dep_idx, ret_idx = [], []
+    # for dep, ret in zip(trips['tdep'], trips['tret']):
+    #     dep_idx.append(df_Flex_newindex.index.get_indexer([dep], method="nearest")[0])
+    #     ret_idx.append(df_Flex_newindex.index.get_indexer([ret], method="nearest")[0])
+    
+    # col_soc = df_Flex_newindex.columns.get_loc("SoC_ref_EV")
+    # # trips["soc_dep"] = df_Flex_newindex.iloc[dep_idx, col_soc].values
+    # trips["soc_ret"] = df_Flex_newindex.iloc[ret_idx, col_soc].values
+
+    # # Set the df_Flex boolean vector
+    # if dep_idx and ret_idx:
+    #     for d, r in zip(dep_idx, ret_idx):
+    #         df_Flex_newindex.iloc[d:r, df_Flex_newindex.columns.get_loc("EV_plugged")] = 0
+    #         df_Flex_newindex.iloc[d, df_Flex_newindex.columns.get_loc("EV_departure")] = 1
+    #         df_Flex_newindex.iloc[r, df_Flex_newindex.columns.get_loc("EV_arrival")] = 1
+
+    #         # df_P.iloc[d:r, df_P.columns.get_loc("P_EV")] = 0
+    #         df_Flex_newindex.iloc[d:r, df_Flex_newindex.columns.get_loc("SoC_ref_EV")] = 0
+
+
     return df_P, df_Flex_newindex
 
 
@@ -356,7 +469,7 @@ def create_params(config):
     return params
 
 
-def plot_data(df_P, df_flex, ):
+def plot_data(df_P, df_flex, title=[]):
     """
     Plots Water Boiler, Heat Pump, and EV data for the full time horizon,
     saves the figure with a timestamp in 'plots/'.
@@ -370,7 +483,14 @@ def plot_data(df_P, df_flex, ):
 
     # Timestamp for filename
     timestamp = datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
-    filename = f"plots/{timestamp}.png"
+    if "Before" in title:
+        str_add = "_before_samp"
+    elif "After" in title:
+        str_add = "_after_samp"
+    else: 
+        str_add = ""
+
+    filename = f"plots/{timestamp+str_add}.png"
 
     # Create figure with more vertical spacing
     fig, axes = plt.subplots(3, 1, figsize=(14, 16), constrained_layout=True)
@@ -392,10 +512,10 @@ def plot_data(df_P, df_flex, ):
 
     # ---------------------- Heat Pump ----------------------
     ax2 = axes[1]
-    ax2.plot(time_steps, df_flex["T_ref_HP"], label="Température de Référence (°C)", color="blue", lw=2)
     ax2.plot(time_steps, df_flex["T_set_HP"], label="Température setpoint (°C)", color="purple", lw=2)
     ax2.plot(time_steps, df_flex["T_wall_HP"], label="Température Wall (°C)", color="orange", lw=2)
     ax2.plot(time_steps, df_flex["T_out_HP"], label="Température Extérieure (°C)", color="darkblue", lw=2)
+    ax2.plot(time_steps, df_flex["T_ref_HP"], label="Température de Référence (°C)", color="blue", lw=2)
     ax2.set_title("Heat Pump", fontsize=14, pad=15)
     ax2.set_ylabel("Temp. (°C)")
     ax2.set_ylim(0, 40)
@@ -409,7 +529,7 @@ def plot_data(df_P, df_flex, ):
 
     # ---------------------- EV ----------------------
     ax3 = axes[2]
-    ax3.step(time_steps, df_flex["EV_plugged"], where="post", label="Statut EV (Branché)", lw=2, color="black")
+    ax3.step(time_steps, df_flex["EV_plugged"], label="Statut EV (Branché)", lw=2, color="black")
     ax3.plot(time_steps, df_flex["SoC_ref_EV"], label="SOC", lw=2, color="blue")
 
     # Mark arrivals and departures
