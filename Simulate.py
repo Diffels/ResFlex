@@ -82,10 +82,11 @@ def one_profile(config):
     if config['HP']: df_P, df_Flex = Appliances.add_HP(df_P, df_Flex, family, config)
     if config['WB']: df_P, df_Flex = Appliances.add_WB(df_P, df_Flex, family, config)
 
-    utils.plot_data(df_P, df_Flex)
-    df_P, df_Flex = utils.set_timesteps(df_P, df_Flex, config) # changer timestep
+    utils.plot_data(df_P, df_Flex, title='Before Sampling')
+    if config['timestep'] > 1:
+        df_P, df_Flex = utils.set_timesteps(df_P, df_Flex, config) # changer timestep
     # To compare with, after resampling:
-    # utils.plot_data(df_P, df_Flex)
+    utils.plot_data(df_P, df_Flex, title='After Sampling')
 
     config = add_ComFlex_params(config)
 
