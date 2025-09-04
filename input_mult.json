@@ -1,9 +1,9 @@
 {  
-    "nb_households": 3,
+    "nb_households": 1,
     "nb_days": 1,
     "timestep": 1,
     "year": 2024,                  
-    "start_day": 0,
+    "start_day": 150,
     "flexibility": true,
     "output": "csv", 
 
