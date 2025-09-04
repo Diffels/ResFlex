@@ -1,7 +1,7 @@
 {  
     "nb_households": 1,
     "nb_days": 1,
-    "timestep": 1,
+    "timestep": 15,
     "year": 2024,                  
     "start_day": 150,
     "flexibility": true,
@@ -48,7 +48,7 @@
         "P_Size": [1],
         "Floors": [2],
         "P_Floors": [1],
-        "P_nom": [6],
+        "P_nom": [3],
         "P_P_nom": [1],
         "COP": [5],
         "P_COP": [1]
