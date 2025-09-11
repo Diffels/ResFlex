@@ -1,9 +1,9 @@
 {  
-    "nb_households": 1,
+    "nb_households": 20,
     "nb_days": 1,
     "timestep": 15,
     "year": 2024,                  
-    "start_day": 150,
+    "start_day": 0,
     "flexibility": true,
     "output": "csv", 
 
@@ -12,48 +12,61 @@
         "P_TumbleDryer": 0.6,
         "P_DishWasher": 0.6,
         "P_WasherDryer": 0.25
-    },             
-    
-    "P_WB": 1,
+    },
+
+    "P_PV": 0.65,
+    "PV_data": {
+        "Pmax": [2, 5, 10, 15, 20],
+        "P_Pmax": [0.1, 0.3, 0.4, 0.1, 0.1]
+    },
+
+    "P_BSS": 0.4,
+    "BSS_data":{
+        "Capacity": [5, 10, 15],
+        "P_Capacity": [0.3, 0.4, 0.3],
+        "Pmax": [2, 5, 7],
+        "P_Pmax": [0.3, 0.4, 0.3]
+    },
+
+    "P_WB": 0.6,
     "WB_data": {
-        "Pmax": [3],
-        "P_Pmax": [1],
-        "Volume": [200],
-        "P_Volume": [1],
+        "Pmax": [1.5, 3, 5],
+        "P_Pmax": [0.3, 0.4, 0.3],
+        "Volume": [100, 200, 250],
+        "P_Volume": [0.2, 0.6, 0.2],
         "T_set": [60],
         "P_T_set": [1]
     },
 
-    "P_EV": 1,
+    "P_EV": 0.5,
     "EV_data": {
-        "Consumption": [20],
-        "P_Consumption": [1],
-        "Capacity": [60],
-        "P_Capacity": [1],
-        "Pmax": [11],
-        "P_Pmax": [1],
+        "Consumption": [15, 20, 25],
+        "P_Consumption": [0.3, 0.4, 0.3],
+        "Capacity": [30, 50, 60],
+        "P_Capacity": [0.3, 0.4, 0.3],
+        "Pmax": [7, 11, 15],
+        "P_Pmax": [0.3, 0.4, 0.3],
         "eta": [0.95],
         "P_eta": [1],
         "SoC_target": [0.80],
         "P_SoC_target": [1],
-        "Usage": [15000],
-        "P_Usage": [1]
+        "Usage": [7000, 14000, 25000],
+        "P_Usage": [0.25, 0.5, 0.25]
     },
-
-    "P_HP": 1,
+    "P_HP": 0.6,
     "HP_data": {
-        "Year": [2009],
-        "P_Year": [1],
-        "Size": [100],
-        "P_Size": [1],
-        "Floors": [2],
-        "P_Floors": [1],
-        "P_nom": [3],
-        "P_P_nom": [1],
+        "Year": [1969, 1989, 2006, 2010],
+        "P_Year": [0.25,0.25,0.25,0.25],
+        "Size": [70, 90, 100, 150],
+        "P_Size": [0.2,0.4,0.2,0.2],
+        "Floors": [1,2,3],
+        "P_Floors": [0.10, 0.45, 0.45],
+        "P_nom": [2, 3, 4, 5],
+        "P_P_nom": [0.25,0.25,0.25,0.25],
         "COP": [5],
         "P_COP": [1]
     },
 
-    "inhabitants":[4],
-    "P_inhabitants": [1]
+    "inhabitants":[2, 3, 4, 5],
+    "P_inhabitants": [0.25,0.25,0.25,0.25]
 }

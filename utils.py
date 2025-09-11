@@ -12,7 +12,7 @@ from datetime import datetime
 def save_one(config, df_P, df_Flex, dic_Param):
     filetype=config['output']
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    set_timesteps(df_P, df_Flex, config)  # Add indices to the dataframes
+    df_P, df_Flex = set_timesteps(df_P, df_Flex, config)
     if filetype == 'csv':
         csv_filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), f"Results/Single/{current_time}.csv")
         df_P.to_csv(csv_filename, index=True)
@@ -276,60 +276,63 @@ def set_timesteps(df_P, df_Flex, config):
     df_P = df_P.resample(f"{ts}min").mean()
 
     df_Flex_newindex = pd.DataFrame(index=pd.date_range(start=start_date, end=end_date, freq=f"{ts}min"))[:-1]
-
     df_Flex_newindex['Occupancy'] = df_Flex['Occupancy'].resample(f"{ts}min").last() 
-    df_Flex_newindex[['SoC_ref_EV']] = (df_Flex[['SoC_ref_EV']].resample(f"{ts}min").last())    
-    df_Flex_newindex[['T_ref_WB', 'T_set_WB']] = df_Flex[['T_ref_WB', 'T_set_WB']].resample(f'{ts}min').mean()
-    df_Flex_newindex[['T_set_HP','P_loss_HP']] = df_Flex[['T_set_HP','P_loss_HP']].resample(f'{ts}min').mean()
-    df_Flex_newindex[['T_ref_HP', 'T_wall_HP', 'T_out_HP']] = df_Flex[['T_ref_HP', 'T_wall_HP', 'T_out_HP']].resample(f'{ts}min').mean()
-    df_Flex_newindex[['P_use_WB', 'P_loss_WB']] = df_Flex[['P_use_WB', 'P_loss_WB']].resample(f'{ts}min').mean()
+
+    if config["HP"]:
+        df_Flex_newindex[['T_set_HP','P_loss_HP']] = df_Flex[['T_set_HP','P_loss_HP']].resample(f'{ts}min').mean()
+        df_Flex_newindex[['T_ref_HP', 'T_wall_HP', 'T_out_HP']] = df_Flex[['T_ref_HP', 'T_wall_HP', 'T_out_HP']].resample(f'{ts}min').mean()
     
-    df_Flex_newindex["EV_arrival"] = 0
-    df_Flex_newindex["EV_departure"] = 0
-    df_Flex_newindex["EV_plugged"] = 0
 
-    # ---- Rebuild EV_plugged from SoC ----
-    # Compute discrete derivative of SoC
-    soc = df_Flex_newindex["SoC_ref_EV"]
-    dsoc = soc.diff()
-
-    # Rule: if SoC decreases, EV must be away
-    df_Flex_newindex.loc[dsoc == 0, "EV_plugged"] = 0  
-    # Rule: if SoC increases, EV must be home
-    df_Flex_newindex.loc[dsoc > 1e-5, "EV_plugged"] = 1 
-
-    # Constant SoC case:
-
-    flat = dsoc.abs() <= 1e-5    
-    df_Flex_newindex.loc[flat & (soc >= 0.01), "EV_plugged"] = 1
-    df_Flex_newindex.loc[flat & (soc == 0), "EV_plugged"] = 0
-
-    # ---- Enforce strict step SoC ----
-    soc_step = soc.copy()
-    soc_step[df_Flex_newindex["EV_plugged"] == 0] = 0  # away → force to 0
-    soc_step[df_Flex_newindex["EV_plugged"] == 1] = soc_step.ffill()  # home → hold last value
-
-    s = df_Flex_newindex['EV_plugged'].astype(int)
-    diff = s.diff()
-    df_Flex_newindex['EV_departure'] = 0
-    df_Flex_newindex['EV_arrival'] = 0
-    df_Flex_newindex.loc[diff == -1, 'EV_departure'] = 1 # plugged → unplugged
-    df_Flex_newindex.loc[diff == 1, 'EV_arrival'] = 1 # unplugged → plugged 
-
-    # Assign SOC values where soc_arr is True
-    # Initialize column
-    df_Flex_newindex["SoC_arr_EV"] = 0.0
-    soc_arr_values = df_Flex["SoC_arr_EV"][df_Flex["SoC_arr_EV"] != 0]
-    
-    soc_index = 0 
-    for index, ev_arrival in zip(df_Flex_newindex.index, df_Flex_newindex['EV_arrival']):
-        if ev_arrival:  # if True, EV has arrived
-            df_Flex_newindex.loc[index, 'SoC_arr_EV'] = soc_arr_values.iloc[soc_index]
-            soc_index += 1
+    if config["WB"]:
+        df_Flex_newindex[['T_ref_WB', 'T_set_WB']] = df_Flex[['T_ref_WB', 'T_set_WB']].resample(f'{ts}min').mean()
+        df_Flex_newindex[['P_use_WB', 'P_loss_WB']] = df_Flex[['P_use_WB', 'P_loss_WB']].resample(f'{ts}min').mean()
 
 
+    if config["EV"]:
+        df_Flex_newindex[['SoC_ref_EV']] = df_Flex[['SoC_ref_EV']].resample(f"{ts}min").last() 
 
+        df_Flex_newindex["EV_arrival"] = 0
+        df_Flex_newindex["EV_departure"] = 0
+        df_Flex_newindex["EV_plugged"] = 0
 
+        # ---- Rebuild EV_plugged from SoC ----
+        # Compute discrete derivative of SoC
+        soc = df_Flex_newindex["SoC_ref_EV"]
+        dsoc = soc.diff()
+
+        # Rule: if SoC decreases, EV must be away
+        df_Flex_newindex.loc[dsoc == 0, "EV_plugged"] = 0  
+        # Rule: if SoC increases, EV must be home
+        df_Flex_newindex.loc[dsoc > 1e-5, "EV_plugged"] = 1 
+
+        # Constant SoC case:
+
+        flat = dsoc.abs() <= 1e-5    
+        df_Flex_newindex.loc[flat & (soc >= 0.01), "EV_plugged"] = 1
+        df_Flex_newindex.loc[flat & (soc == 0), "EV_plugged"] = 0
+
+        # ---- Enforce strict step SoC ----
+        soc_step = soc.copy()
+        soc_step[df_Flex_newindex["EV_plugged"] == 0] = 0  # away → force to 0
+        soc_step[df_Flex_newindex["EV_plugged"] == 1] = soc_step.ffill()  # home → hold last value
+
+        s = df_Flex_newindex['EV_plugged'].astype(int)
+        diff = s.diff()
+        df_Flex_newindex['EV_departure'] = 0
+        df_Flex_newindex['EV_arrival'] = 0
+        df_Flex_newindex.loc[diff == -1, 'EV_departure'] = 1 # plugged → unplugged
+        df_Flex_newindex.loc[diff == 1, 'EV_arrival'] = 1 # unplugged → plugged 
+
+        # Assign SOC values where soc_arr is True
+        # Initialize column
+        df_Flex_newindex["SoC_arr_EV"] = 0.0
+        soc_arr_values = df_Flex["SoC_arr_EV"][df_Flex["SoC_arr_EV"] != 0]
+        
+        soc_index = 0 
+        for index, ev_arrival in zip(df_Flex_newindex.index, df_Flex_newindex['EV_arrival']):
+            if ev_arrival:  # if True, EV has arrived
+                df_Flex_newindex.loc[index, 'SoC_arr_EV'] = soc_arr_values.iloc[soc_index]
+                soc_index += 1
 
     # # ---- Assign trip behavior ----
     # # Assume it's per default plugged
@@ -445,18 +448,25 @@ def append_flexible(appliance, fields, list_param, config):
         house[appliance] = bool(app[i])
         house[f'{appliance}_data'] = {}
         for f in fields:
-            house[f'{appliance}_data'][f] = float(lists[f][i])
+            if not house[appliance]:
+                house[f'{appliance}_data'][f] = None
+            else:
+                house[f'{appliance}_data'][f] = float(lists[f][i])
     return list_param
 
 def get_list_param(config):
-    list_param = [{}] * config['nb_households']
+    list_param = [{} for _ in range(config['nb_households'])]  # each house is independent
     list_param = append_recurring(['nb_days', 'timestep', 'year', 'start_day', 'flexibility'], list_param, config)
     list_param = append_appliances(list_param, config)
     list_param = append_flexible('HP',['Year', 'Size', 'Floors','P_nom', 'COP'], list_param, config)
     list_param = append_flexible('WB', ['Pmax', 'Volume', 'T_set'], list_param, config)
     list_param = append_flexible('EV', ['Consumption', 'Capacity', 'Pmax', 'eta', 'SoC_target', 'Usage'], list_param, config)
+    list_param = append_flexible('BSS', ['Pmax', 'Capacity'], list_param, config)
+    list_param = append_flexible('PV', ['Pmax'], list_param, config)
+
     list_param = append_family(list_param, config)
     return list_param
+
 
 def create_params(config):
     # Check if the config file is valid

@@ -2,6 +2,7 @@
 import os
 import time
 import json
+import numpy as np
 
 # Import custom modules
 import Appliances.Appliances as Appliances
@@ -15,7 +16,6 @@ def simulate_all(config, save=True, plot_res=False, print_res=True):
         user = f"House{u}"
         print(f"Simulating {user} ({u}/{len(houses_params)})")
         dic_df_P[user], dic_df_Flex[user], dic_Params[user] = one_profile(house_params)
-
 
     if save: 
         print("Saving results...")
@@ -40,25 +40,39 @@ def simulate_one(config, save=True, plot_res=False, print_res=True):
                      'ylabel': 'Power (kW)', 'grid': True, 'legend': True, 'colors': colors} 
         utils.plot_one(df_P, dic_plot, pdf=True)
 
-def add_ComFlex_params(d):
-    # d["Name"] = "House"+str(d['id'])
-    d["Price_idx"] = 1
-    # d["Node_idx"] = d['id']
-    d['EV_data']['id'] = 1
-    d['EV_data']['alpha'] = 1
-    d['HP_data']['id'] = 1
-    d['HP_data']['alpha'] = 1
-    d['WB_data']['id'] = 1
-    d['WB_data']['alpha'] = 1
+# def add_ComFlex_params(config):
+#     # config["Name"] = "House"+str(config['id'])
+#     config["Price_idx"] = 1
+#     # config["Node_idx"] = config['id']
 
-    d['BSS'] = True
-    d['BSS_data'] = {"Pmax": 5,
-                     "SOC_min": 0.2, "SOC_max": 0.8,
-                     "Capacity": 10, "eta": 0.9}
+#     if config["EV"]:
+#         config['EV_data']['id'] = 1
+#         config['EV_data']['alpha'] = 1
+#     if config["HP"]:
+#         config['HP_data']['id'] = 1
+#         config['HP_data']['alpha'] = 1
+#     if config["WB"]:
+#         config['WB_data']['id'] = 1
+#         config['WB_data']['alpha'] = 1
 
-    d['PV'] = True
-    d['PV_data'] = {"id": 1, "Pmax": 5}
-    return d
+#     if np.random.random() < config["P_BSS"]:
+#         config['BSS'] = True
+#         bss_cap = np.random.choice(config["BSS_cap"], p=config["P_BSS_cap"])
+#         bss_pmax = np.random.choice(config["BSS_Pmax"], p=config["P_BSS_Pmax"])
+#         config['BSS_data'] = {"Pmax": bss_pmax,
+#                      "SOC_min": 0.2, "SOC_max": 0.8,
+#                      "Capacity": bss_cap, "eta": 0.9}
+#     else:
+#         config['BSS'] = False
+
+#     if np.random.random() < config["P_PV"]:
+#             config['PV'] = True
+#             pv_pmax = np.random.choice(config["PV_Pmax"], p=config["P_PV_Pmax"])
+#             config['PV_data'] = {"id": 1, "Pmax": pv_pmax}
+#     else:
+#         config['PV'] = False
+
+#     return config
 
 
 def one_profile(config):
@@ -78,17 +92,15 @@ def one_profile(config):
 
     config = Appliances.complete_params(config)
     df_P, df_Flex, family = Appliances.get_baseload(config)
+
     if config['EV']: df_P, df_Flex = Appliances.add_EV(df_P, df_Flex, family, config)
     if config['HP']: df_P, df_Flex = Appliances.add_HP(df_P, df_Flex, family, config)
     if config['WB']: df_P, df_Flex = Appliances.add_WB(df_P, df_Flex, family, config)
 
-    utils.plot_data(df_P, df_Flex, title='Before Sampling')
     if config['timestep'] > 1:
         df_P, df_Flex = utils.set_timesteps(df_P, df_Flex, config) # changer timestep
-    # To compare with, after resampling:
-    utils.plot_data(df_P, df_Flex, title='After Sampling')
 
-    config = add_ComFlex_params(config)
+    # config = add_ComFlex_params(config)
 
     end_time = time.time()
     execution_time = end_time - start_time

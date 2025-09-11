@@ -8,8 +8,8 @@ from .StROBe.Household_mod import Household_mod
 
 
 def complete_params(config):
-    config = add_params_HP(config)
-    config = add_params_WB(config)
+    if config["HP"]: config = add_params_HP(config)
+    if config["WB"]: config = add_params_WB(config)
     # config = add_params_EV(config) # Currently no param to be added
     return config
 
