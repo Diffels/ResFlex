@@ -9,45 +9,6 @@ def add_params_WB(config):
     config['WB_data']['C_WB'] = 1/(config['WB_data']['rho'] * config['WB_data']['specific_heat'] * config['WB_data']['Volume'])
     return config
 
-def limit_power(power_per_time, max_power):
-    """
-    This function takes as arguments the power needed to heat the residential heated water for each time step 
-    of the simulation and the maximal power that could be delivered by the electrical boiler. 
-
-    It returns a vector of the electrical boiler load.
-    """
-
-    power_per_time = np.array(power_per_time)
-    over_power = 0
-    j=0
-    
-    for i in range(len(power_per_time)):
-        actual_power = power_per_time[i]
-        if i > j or j ==0:
-            j=i
-        if j <=len(power_per_time)-1: 
-            while actual_power > max_power : 
-                j=j+1
-                if j >len(power_per_time)-1: 
-                    power_per_time[i] = max_power
-                    break
-
-                if power_per_time[j] < max_power:
-                    actual_power = actual_power+power_per_time[j]-max_power 
-                    if actual_power > max_power:
-                        power_per_time[j] = max_power
-                    else : 
-                        power_per_time[j]= actual_power
-                        power_per_time[i] = max_power
-                        j=j-1
-        else :
-            if actual_power > max_power :
-                over_power = over_power + actual_power - max_power
-                power_per_time[i] = max_power
-    if over_power > 0:
-        print(f'{over_power/60e3} kWh of hot water energy should be added next day')
-    return power_per_time
-
 def WB_simulate(mDHW, config):
     """
     This function takes as arguments the dataframe containing the hot water consumption for each time 

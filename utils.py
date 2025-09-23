@@ -461,8 +461,8 @@ def get_list_param(config):
     list_param = append_flexible('HP',['Year', 'Size', 'Floors','P_nom', 'COP'], list_param, config)
     list_param = append_flexible('WB', ['Pmax', 'Volume', 'T_set'], list_param, config)
     list_param = append_flexible('EV', ['Consumption', 'Capacity', 'Pmax', 'eta', 'SoC_target', 'Usage'], list_param, config)
-    list_param = append_flexible('BSS', ['Pmax', 'Capacity'], list_param, config)
-    list_param = append_flexible('PV', ['Pmax'], list_param, config)
+    list_param = append_flexible('BSS', ['Pmax', 'Capacity', 'SoC_min', 'SoC_max', 'eta'], list_param, config)
+    list_param = append_flexible('PV', ['Pmax', 'id'], list_param, config)
 
     list_param = append_family(list_param, config)
     return list_param

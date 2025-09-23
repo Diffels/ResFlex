@@ -13,7 +13,7 @@ def simulate_all(config, save=True, plot_res=False, print_res=True):
     dic_df_P, dic_df_Flex, dic_Params = {}, {}, {}
 
     for u, house_params in enumerate(houses_params, start=1):
-        user = f"House{u}"
+        user = f"household_{u}"
         print(f"Simulating {user} ({u}/{len(houses_params)})")
         dic_df_P[user], dic_df_Flex[user], dic_Params[user] = one_profile(house_params)
 
@@ -33,7 +33,7 @@ def simulate_one(config, save=True, plot_res=False, print_res=True):
     if print_res: utils.print_one(config, df_P, df_Flex, dic_Param)
     if plot_res:
         # Poster colors:
-        colors = ['#a5a5a5',  "#95e2ea", '#6c96c2', '#d4524f', '#a87e5b']  # Add hex color codes (same order as nice_cols)
+        colors = ["#646262",  "#95e2ea", '#6c96c2', '#d4524f', '#a87e5b']  # Add hex color codes (same order as nice_cols)
         # New proposed colors:"#c6dee1",'xlabel': 'Time',
         #colors = ["#a7a7a7", "#45bde9", "#3a74e9", "#ea8f45", "#ed5151", "#80d671"]
         dic_plot = {'show': True, 'save': True, 'fontsize': 44, 'figsize_cm':(66, 10), 'title': 'Power Consumption for one Household',
