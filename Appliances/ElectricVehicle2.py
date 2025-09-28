@@ -139,7 +139,7 @@ def weekly_charging(config: dict, t_arr: np.ndarray, t_dep: np.ndarray, dur_trav
             if charge_length > max_charging_time: 
                 missing_charge += (charge_length - max_charging_time)*config["EV_data"]["Pmax"] / 60
                 charge_length = max_charging_time 
-                # print(f"Missing charge: {missing_charge} kWh")
+                print(f"Missing charge: {missing_charge} kWh")
             else: 
                 missing_charge = 0
 
@@ -216,6 +216,7 @@ def EV_simulate(occupancy: np.ndarray[Any, np.dtype[np.bool_]], config: dict)-> 
     Flex_EV["SoC_arr_EV"] = Flex_EV["SoC_arr_EV"].astype(float)
                        
     for w in range(int((config["nb_days"]-1)/7) + 1): # loop for each week
+        print("Week ", w)
         t_arr_w, t_dep_w, charge_length_min = weekly_charging(config, t_arr, t_dep, dur_travel) 
 
         for i in range(len(t_arr_w)):
@@ -240,8 +241,12 @@ def EV_simulate(occupancy: np.ndarray[Any, np.dtype[np.bool_]], config: dict)-> 
             for j in range(EV_arrive+1, EV_leave+1):
                 Flex_EV.loc[j, "SoC_ref_EV"]  = Flex_EV.loc[j-1, "SoC_ref_EV"] + P_EV[j]/60/config["EV_data"]["Capacity"]
 
-            if Flex_EV.loc[EV_leave, "SoC_ref_EV"] < config["EV_data"]["SoC_target"]:
-                print(f"Warning: EV SoC exceeds maximum at day {w*7 + (t_arr_w[i]//1440)+1}, arrival time {t_arr_w[i]%1440//60}:{t_arr_w[i]%60}.")
+            if Flex_EV.loc[EV_leave, "SoC_ref_EV"] + 1e-3 < config["EV_data"]["SoC_target"]:
+                hour = t_arr_w[i] % 1440 // 60
+                minute = t_arr_w[i] % 60
+                print(f"Warning: EV SoC not reach at day {w*7 + (t_arr_w[i]//1440)+1}, arrival time {hour:02d}:{minute:02d}: SoC={Flex_EV.loc[EV_leave, "SoC_ref_EV"]}.")
+
+
 
         # Assume the EV starts connected at home at the beginning of the simulation
         #if w == 0 and len(t_arr_w) > 0:

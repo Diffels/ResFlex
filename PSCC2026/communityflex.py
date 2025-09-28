@@ -51,7 +51,7 @@ def summarize_houses(json_file):
 # Example usage
 if __name__ == "__main__":
 
-    path = "Results/Multiple/2025-09-11_17-22-43/"
+    path = "Results/Multiple/2025-09-26_09-52-23/"
     df = summarize_houses(path+"users.json")
     df.to_excel(path+"users_summary.xlsx")
     print(df)
