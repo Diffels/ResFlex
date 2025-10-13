@@ -17,8 +17,10 @@ def WB_simulate(mDHW, config):
     """
     wb_data=config['WB_data']
     tol = 1
-    #P_use = mDHW['mDHW']
-    P_use = mDHW['mDHW'] * wb_data['rho'] * (wb_data['T_set'] - wb_data['T_in']) * wb_data['specific_heat']*20/1e3  # [J]*60 seconds
+    T_out = 22
+
+
+    P_use = mDHW['mDHW'] * wb_data['rho'] * (wb_data['T_set'] - wb_data['T_in']) * wb_data['specific_heat']*10/1e3  # [J]*60 seconds
 
     sim_len=len(P_use)
     P_WB = np.zeros(sim_len)
@@ -31,7 +33,7 @@ def WB_simulate(mDHW, config):
         if T_ref[i] < T_set[i] - tol: P_WB[i] = wb_data['Pmax']
         elif T_ref[i] > T_set[i] + tol: P_WB[i] = 0
         elif i>0: P_WB[i] = P_WB[i-1]
-        P_loss[i] = 0#C_wall * (T_ref[i] - T_out)
+        P_loss[i] = 2 * (T_ref[i] - T_out)*1e-3
         T_ref[i+1] = T_ref[i] + 60 * wb_data['C_WB'] * (P_WB[i] - P_use[i] - P_loss[i])
 
 

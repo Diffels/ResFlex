@@ -6,42 +6,51 @@ from datetime import datetime
 import random
 
 def get_weekly_journey_times(occupancy: np.ndarray[Any, np.dtype[np.bool_]], config: dict):
-    t_dep = np.where((occupancy[:-1] == 1) & (occupancy[1:] == 0))[0] + 1
-    t_arr = np.where((occupancy[:-1] == 0) & (occupancy[1:] == 1))[0] + 1
-
+    # Find transitions using numpy for speed
+    occ_prev = occupancy[:-1]
+    occ_next = occupancy[1:]
+    t_dep = np.flatnonzero((occ_prev == 1) & (occ_next == 0))
+    t_arr = np.flatnonzero((occ_prev == 0) & (occ_next == 1)) + 1
     # Ensure each departure has a corresponding arrival after it
-    t_dep = t_dep[t_dep < t_arr[-1]] if len(t_arr) > 0 else t_dep
-    t_arr = np.array([a for a in t_arr if a > t_dep[0]]) if len(t_dep) > 0 else t_arr
+    if len(t_arr) > 0:
+        t_dep = t_dep[t_dep < t_arr[-1]]
+    if len(t_dep) > 0:
+        t_arr = t_arr[t_arr > t_dep[0]]
+
     # Pair up departures and arrivals
     min_len = min(len(t_dep), len(t_arr))
+    if min_len == 0:
+        return np.array([], dtype=int), np.array([], dtype=int), np.array([], dtype=int)
     t_dep = t_dep[:min_len]
     t_arr = t_arr[:min_len]
     dur_travel = t_arr - t_dep
 
-    # Shift t_dep and t_arr by day_shift*24*60, then take modulo 7*24*60
-    day_shift = (datetime(config["year"], 1, 1) + pd.Timedelta(days=config["start_day"])).weekday() # Monday = 0, Saturday = 5, Sunday = 6
+    # Shift times by day_shift and modulo week length
+    day_shift = (datetime(config["year"], 1, 1) + pd.Timedelta(days=config["start_day"])).weekday()
     minutes_per_week = 7 * 24 * 60
     shift = day_shift * 24 * 60
     t_dep = (t_dep + shift) % minutes_per_week
     t_arr = (t_arr + shift) % minutes_per_week
 
-    # Sort by t_dep to put smaller values in front, and reorder t_arr and dur_travel accordingly
+    # Sort by t_dep and reorder arrays
     sort_idx = np.argsort(t_dep)
     t_dep = t_dep[sort_idx]
     t_arr = t_arr[sort_idx]
     dur_travel = dur_travel[sort_idx]
 
     # Remove travels that last less than 30 mins
-    valid = dur_travel >= 30
-    t_dep = t_dep[valid]
-    t_arr = t_arr[valid]
-    dur_travel = dur_travel[valid]
+    valid_travel = dur_travel >= 30
+    t_dep = t_dep[valid_travel]
+    t_arr = t_arr[valid_travel]
+    dur_travel = dur_travel[valid_travel]
+
     # Remove stays that are less than 30 mins
-    dur_stay = t_dep[1:] - t_arr[:-1]
-    valid = dur_stay >= 30
-    t_dep = np.concatenate(([t_dep[0]], t_dep[1:][valid]))
-    t_arr = np.concatenate((t_arr[:-1][valid], [t_arr[-1]]))
-    dur_travel = t_arr - t_dep
+    if len(t_dep) > 1:
+        dur_stay = t_dep[1:] - t_arr[:-1]
+        valid_stay = dur_stay >= 30
+        t_dep = np.concatenate(([t_dep[0]], t_dep[1:][valid_stay]))
+        t_arr = np.concatenate((t_arr[:-1][valid_stay], [t_arr[-1]]))
+        dur_travel = t_arr - t_dep
 
     return t_arr, t_dep, dur_travel
 
@@ -56,6 +65,7 @@ def get_daily_cons(config: dict) -> np.ndarray:
     weekly_km = round(random.uniform(config["EV_data"]["Usage"]*7*(1-r_dist_w) / 365,config["EV_data"]["Usage"]*7*(1+r_dist_w) / 365))
     # Compute weekday vector for the week, shifted by day_shift assign a daily usage to each day
     # Average multiplied 0.93 for weekdays, 1.175 for weekends
+    
     daily_km = np.array([0.93*weekly_km/7 if (day_shift + d) % 7 <= 4 else 1.175*weekly_km/7 for d in range(7)])
     daily_km_rand = np.round(np.random.uniform(daily_km*(1 - r_dist_d),daily_km*(1 + r_dist_d)))
 
@@ -128,8 +138,8 @@ def weekly_charging(config: dict, t_arr: np.ndarray, t_dep: np.ndarray, dur_trav
             cons = daily_kWh[d]*dur_travel_day[d][i] / dur_tot + missing_charge
             cons = charging_outside(cons, config["EV_data"]["Capacity"])
             # Compute the charge length in minutes
-            charge_length = int((cons / config["EV_data"]["Pmax"]) * 60 )
-            charge_length_min.append(charge_length)
+            charge_length = int((cons / (config["EV_data"]["Pmax"]*config["EV_data"]["eta"])) * 60 )
+            
             # Ensure charge length is not longer than the time between arrival and departure
             if i < len(dep)-1:
                 max_charging_time = dep[i+1] - arr[i]  
@@ -139,9 +149,10 @@ def weekly_charging(config: dict, t_arr: np.ndarray, t_dep: np.ndarray, dur_trav
             if charge_length > max_charging_time: 
                 missing_charge += (charge_length - max_charging_time)*config["EV_data"]["Pmax"] / 60
                 charge_length = max_charging_time 
-                print(f"Missing charge: {missing_charge} kWh")
             else: 
                 missing_charge = 0
+
+            charge_length_min.append(charge_length)
 
     # Flatten t_arr_day and t_dep_day back to 1D arrays
     t_ar = np.concatenate([arr for arr in t_arr_day if len(arr) > 0])
@@ -222,11 +233,10 @@ def EV_simulate(occupancy: np.ndarray[Any, np.dtype[np.bool_]], config: dict)-> 
         for i in range(len(t_arr_w)):
             P_EV[w*weekly_timesteps+t_arr_w[i]:w*weekly_timesteps+t_arr_w[i]+charge_length_min[i]] = config["EV_data"]["Pmax"] # Add the consumption to the EV load profile
         #    Flex_EV[w*weekly_timesteps+t_arr_w[i]:w*weekly_timesteps+t_dep_w[i]] = 1 
-
+        flag=False
         for i in range(len(t_arr_w)):
-
             EV_arrive = int(w * weekly_timesteps + t_arr_w[i])
-            EV_leave = int(w * weekly_timesteps + t_dep_w[i+1]) if i < len(t_dep_w)-1 else -1
+            EV_leave = int(w * weekly_timesteps + t_dep_w[i+1]) if i < len(t_dep_w)-1 else w * weekly_timesteps + 7*60*24-1
             EV_charge = int(charge_length_min[i])
 
             P_EV[EV_arrive: EV_arrive + EV_charge] = config["EV_data"]["Pmax"] 
@@ -235,16 +245,16 @@ def EV_simulate(occupancy: np.ndarray[Any, np.dtype[np.bool_]], config: dict)-> 
             Flex_EV.loc[EV_arrive, "EV_arrival"] = 1
             Flex_EV.loc[EV_leave, "EV_departure"] = 1
 
-            EV_energy = (EV_charge / 60) * config["EV_data"]["Pmax"]
-            Flex_EV.loc[EV_arrive, "SoC_arr_EV"] = config["EV_data"]["SoC_target"] - EV_energy/config["EV_data"]["Capacity"]
-            Flex_EV.loc[EV_arrive, "SoC_ref_EV"] = Flex_EV.loc[EV_arrive, "SoC_arr_EV"] + config["EV_data"]["Pmax"]/60/config["EV_data"]["Capacity"]
+            EV_energy = (EV_charge / 60.) * config["EV_data"]["Pmax"]
+            Flex_EV.loc[EV_arrive, "SoC_arr_EV"] = config["EV_data"]["SoC_target"] - config["EV_data"]["eta"]*EV_energy/(config["EV_data"]["Capacity"])
+            Flex_EV.loc[EV_arrive, "SoC_ref_EV"] = Flex_EV.loc[EV_arrive, "SoC_arr_EV"] + config["EV_data"]["eta"]*P_EV[EV_arrive]/(60*config["EV_data"]["Capacity"])
             for j in range(EV_arrive+1, EV_leave+1):
-                Flex_EV.loc[j, "SoC_ref_EV"]  = Flex_EV.loc[j-1, "SoC_ref_EV"] + P_EV[j]/60/config["EV_data"]["Capacity"]
+                Flex_EV.loc[j, "SoC_ref_EV"]  = Flex_EV.loc[j-1, "SoC_ref_EV"] + config["EV_data"]["eta"]*P_EV[j]/(60*config["EV_data"]["Capacity"])
 
             if Flex_EV.loc[EV_leave, "SoC_ref_EV"] + 1e-3 < config["EV_data"]["SoC_target"]:
                 hour = t_arr_w[i] % 1440 // 60
                 minute = t_arr_w[i] % 60
-                print(f"Warning: EV SoC not reach at day {w*7 + (t_arr_w[i]//1440)+1}, arrival time {hour:02d}:{minute:02d}: SoC={Flex_EV.loc[EV_leave, "SoC_ref_EV"]}.")
+                print(f"ERROR: EV SoC not reach at day {w*7 + (t_arr_w[i]//1440)+1}, arrival time {hour:02d}:{minute:02d}: SoC={Flex_EV.loc[EV_leave, "SoC_ref_EV"]}.")
 
 
 

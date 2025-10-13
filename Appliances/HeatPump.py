@@ -145,7 +145,7 @@ def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom):
         P_wallloss = ((1-k_wall)*house['U_wall'] * A_wall * (T_wall[ts-1] - T_out[ts-1]) - P_aircond)/1e3  # Conduction losses through walls divided by 2 to account for half the thickness of the wall
         Q_exfiltration = (ACH/60)*house['C_air']*(T_in[ts-1] - T_out[ts-1])/60 # in W: [1/min] * m3 * kg/m3 * J/(kg.K) * K / 60s
         P_airloss = (P_aircond - P_irr[ts-1]/10 + Q_exfiltration)/1e3 # Net losses including solar gain [kW]
-        P_loss[ts] = P_wallloss # Total losses
+        P_loss[ts] = P_airloss # Total losses
         
         if T_in[ts-1] < T_set[ts-1] - abs: HP[ts] = P_nom
         elif T_in[ts-1] > T_set[ts-1] + abs: HP[ts] = 0
@@ -164,7 +164,7 @@ def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom):
         T_wall[ts] = T_wall[ts-1] + dTwall*60          # Update wall temperature
         
 
-    return HP, T_in, T_wall, P_airloss  # Return HP power, indoor and wall temperature, Power losses
+    return HP, T_in, T_wall, P_loss  # Return HP power, indoor and wall temperature, Power losses
 
 def HP_simulate(T_set, config):     
     T_out, P_irr = weather_import(config['HP_data'], os.path.join(os.path.dirname(__file__), 'database', 'Meteo2022_Liege.xlsx'),

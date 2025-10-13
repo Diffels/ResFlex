@@ -1,0 +1,79 @@
+{
+    "household_1": {
+        "nb_days": 14,
+        "timestep": 1,
+        "year": 2024,
+        "start_day": 0,
+        "flexibility": true,
+        "appliances": {
+            "WashingMachine": 1,
+            "DishWasher": 1,
+            "TumbleDryer": 0,
+            "WasherDryer": 1
+        },
+        "HP": true,
+        "HP_data": {
+            "Year": 1989.0,
+            "Size": 90.0,
+            "Floors": 1.0,
+            "P_nom": 4.0,
+            "COP": 5.0,
+            "U_wall": 0.98,
+            "C_env": 13918831.875,
+            "C_air": 277003.125,
+            "U_tot": 308.5224999999999,
+            "window_surface": 12.47,
+            "wall_surface": 94.875,
+            "volume": 225.0,
+            "north_window_surface": 4.285755291757533,
+            "east_window_surface": 3.7568705976582755,
+            "south_window_surface": 3.293516870037286,
+            "west_window_surface": 1.1336445069000183,
+            "id": 1,
+            "alpha": 1
+        },
+        "WB": true,
+        "WB_data": {
+            "Pmax": 3.0,
+            "Volume": 200.0,
+            "T_set": 60.0,
+            "T_in": 14,
+            "T_amb": 20,
+            "specific_heat": 4.186,
+            "rho": 1,
+            "C_WB": 0.0011944577161968465,
+            "id": 1,
+            "alpha": 1
+        },
+        "EV": true,
+        "EV_data": {
+            "Consumption": 15.0,
+            "Capacity": 30.0,
+            "Pmax": 7.0,
+            "eta": 0.95,
+            "SoC_target": 0.8,
+            "Usage": 25000.0,
+            "id": 1,
+            "alpha": 1
+        },
+        "BSS": true,
+        "BSS_data": {
+            "Pmax": 2.0,
+            "Capacity": 5.0,
+            "SoC_min": 0.2,
+            "SoC_max": 0.8,
+            "eta": 0.95
+        },
+        "PV": false,
+        "PV_data": {
+            "Pmax": null,
+            "id": null
+        },
+        "family": 2,
+        "occupations": [
+            "Random",
+            "Random"
+        ],
+        "Price_idx": 1
+    }
+}

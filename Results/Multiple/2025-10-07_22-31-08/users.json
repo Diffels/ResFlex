@@ -1,0 +1,59 @@
+{
+    "household_1": {
+        "nb_days": 14,
+        "timestep": 1,
+        "year": 2024,
+        "start_day": 0,
+        "flexibility": true,
+        "appliances": {
+            "WashingMachine": 1,
+            "DishWasher": 0,
+            "TumbleDryer": 1,
+            "WasherDryer": 0
+        },
+        "HP": false,
+        "HP_data": {
+            "Year": null,
+            "Size": null,
+            "Floors": null,
+            "P_nom": null,
+            "COP": null
+        },
+        "WB": false,
+        "WB_data": {
+            "Pmax": null,
+            "Volume": null,
+            "T_set": null
+        },
+        "EV": false,
+        "EV_data": {
+            "Consumption": null,
+            "Capacity": null,
+            "Pmax": null,
+            "eta": null,
+            "SoC_target": null,
+            "Usage": null
+        },
+        "BSS": false,
+        "BSS_data": {
+            "Pmax": null,
+            "Capacity": null,
+            "SoC_min": null,
+            "SoC_max": null,
+            "eta": null
+        },
+        "PV": false,
+        "PV_data": {
+            "Pmax": null,
+            "id": null
+        },
+        "family": 4,
+        "occupations": [
+            "Random",
+            "Random",
+            "Random",
+            "Random"
+        ],
+        "Price_idx": 1
+    }
+}

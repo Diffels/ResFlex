@@ -271,7 +271,7 @@ def set_timesteps(df_P, df_Flex, config):
     time_index = pd.date_range(start=start_date, end=end_date, freq="1min")
     df_P.index = time_index[:len(df_P)] if len(time_index) >= len(df_P) else time_index
     df_Flex.index = time_index[:len(df_Flex)] if len(time_index) >= len(df_Flex) else time_index
-    
+    if config['timestep'] == 1: return df_P, df_Flex
     # ---- Resample signals ----
     df_P = df_P.resample(f"{ts}min").mean()
 
@@ -280,59 +280,60 @@ def set_timesteps(df_P, df_Flex, config):
 
     if config["HP"]:
         df_Flex_newindex[['T_set_HP','P_loss_HP']] = df_Flex[['T_set_HP','P_loss_HP']].resample(f'{ts}min').mean()
-        df_Flex_newindex[['T_ref_HP', 'T_wall_HP', 'T_out_HP']] = df_Flex[['T_ref_HP', 'T_wall_HP', 'T_out_HP']].resample(f'{ts}min').mean()
+        df_Flex_newindex[['T_ref_HP', 'T_wall_HP', 'T_out_HP']] = df_Flex[['T_ref_HP', 'T_wall_HP', 'T_out_HP']].resample(f'{ts}min').first()
     
 
     if config["WB"]:
-        df_Flex_newindex[['T_ref_WB', 'T_set_WB']] = df_Flex[['T_ref_WB', 'T_set_WB']].resample(f'{ts}min').mean()
-        df_Flex_newindex[['P_use_WB', 'P_loss_WB']] = df_Flex[['P_use_WB', 'P_loss_WB']].resample(f'{ts}min').mean()
+        df_Flex_newindex[['T_ref_WB']] = df_Flex[['T_ref_WB']].resample(f'{ts}min').first() 
+        df_Flex_newindex[['P_use_WB', 'P_loss_WB', 'T_set_WB']] = df_Flex[['P_use_WB', 'P_loss_WB', 'T_set_WB']].resample(f'{ts}min').mean()
 
 
     if config["EV"]:
-        df_Flex_newindex[['SoC_ref_EV']] = df_Flex[['SoC_ref_EV']].resample(f"{ts}min").last() 
+        df_Flex_newindex[['SoC_ref_EV','SoC_arr_EV','EV_plugged','EV_arrival','EV_departure']] = df_Flex[['SoC_ref_EV','SoC_arr_EV','EV_plugged','EV_arrival','EV_departure']].resample(f"{ts}min").max() 
 
-        df_Flex_newindex["EV_arrival"] = 0
-        df_Flex_newindex["EV_departure"] = 0
-        df_Flex_newindex["EV_plugged"] = 0
 
-        # ---- Rebuild EV_plugged from SoC ----
-        # Compute discrete derivative of SoC
-        soc = df_Flex_newindex["SoC_ref_EV"]
-        dsoc = soc.diff()
+        # df_Flex_newindex["EV_arrival"] = 0
+        # df_Flex_newindex["EV_departure"] = 0
+        # df_Flex_newindex["EV_plugged"] = 0
 
-        # Rule: if SoC decreases, EV must be away
-        df_Flex_newindex.loc[dsoc == 0, "EV_plugged"] = 0  
-        # Rule: if SoC increases, EV must be home
-        df_Flex_newindex.loc[dsoc > 1e-5, "EV_plugged"] = 1 
+        # # ---- Rebuild EV_plugged from SoC ----
+        # # Compute discrete derivative of SoC
+        # soc = df_Flex_newindex["SoC_ref_EV"]
+        # dsoc = soc.diff()
 
-        # Constant SoC case:
+        # # Rule: if SoC decreases, EV must be away
+        # df_Flex_newindex.loc[dsoc == 0, "EV_plugged"] = 0  
+        # # Rule: if SoC increases, EV must be home
+        # df_Flex_newindex.loc[dsoc > 1e-5, "EV_plugged"] = 1 
 
-        flat = dsoc.abs() <= 1e-5    
-        df_Flex_newindex.loc[flat & (soc >= 0.01), "EV_plugged"] = 1
-        df_Flex_newindex.loc[flat & (soc == 0), "EV_plugged"] = 0
+        # # Constant SoC case:
 
-        # ---- Enforce strict step SoC ----
-        soc_step = soc.copy()
-        soc_step[df_Flex_newindex["EV_plugged"] == 0] = 0  # away → force to 0
-        soc_step[df_Flex_newindex["EV_plugged"] == 1] = soc_step.ffill()  # home → hold last value
+        # flat = dsoc.abs() <= 1e-5    
+        # df_Flex_newindex.loc[flat & (soc >= 0.01), "EV_plugged"] = 1
+        # df_Flex_newindex.loc[flat & (soc == 0), "EV_plugged"] = 0
 
-        s = df_Flex_newindex['EV_plugged'].astype(int)
-        diff = s.diff()
-        df_Flex_newindex['EV_departure'] = 0
-        df_Flex_newindex['EV_arrival'] = 0
-        df_Flex_newindex.loc[diff == -1, 'EV_departure'] = 1 # plugged → unplugged
-        df_Flex_newindex.loc[diff == 1, 'EV_arrival'] = 1 # unplugged → plugged 
+        # # ---- Enforce strict step SoC ----
+        # soc_step = soc.copy()
+        # soc_step[df_Flex_newindex["EV_plugged"] == 0] = 0  # away → force to 0
+        # soc_step[df_Flex_newindex["EV_plugged"] == 1] = soc_step.ffill()  # home → hold last value
 
-        # Assign SOC values where soc_arr is True
-        # Initialize column
-        df_Flex_newindex["SoC_arr_EV"] = 0.0
-        soc_arr_values = df_Flex["SoC_arr_EV"][df_Flex["SoC_arr_EV"] != 0]
+        # s = df_Flex_newindex['EV_plugged'].astype(int)
+        # diff = s.diff()
+        # df_Flex_newindex['EV_departure'] = 0
+        # df_Flex_newindex['EV_arrival'] = 0
+        # df_Flex_newindex.loc[diff == -1, 'EV_departure'] = 1 # plugged → unplugged
+        # df_Flex_newindex.loc[diff == 1, 'EV_arrival'] = 1 # unplugged → plugged 
+
+        # # Assign SOC values where soc_arr is True
+        # # Initialize column
+        # df_Flex_newindex["SoC_arr_EV"] = 0.0
+        # soc_arr_values = df_Flex["SoC_arr_EV"][df_Flex["SoC_arr_EV"] != 0]
         
-        soc_index = 0 
-        for index, ev_arrival in zip(df_Flex_newindex.index, df_Flex_newindex['EV_arrival']):
-            if ev_arrival:  # if True, EV has arrived
-                df_Flex_newindex.loc[index, 'SoC_arr_EV'] = soc_arr_values.iloc[soc_index]
-                soc_index += 1
+        # soc_index = 0 
+        # for index, ev_arrival in zip(df_Flex_newindex.index, df_Flex_newindex['EV_arrival']):
+        #     if ev_arrival:  # if True, EV has arrived
+        #         df_Flex_newindex.loc[index, 'SoC_arr_EV'] = soc_arr_values.iloc[soc_index]
+        #         soc_index += 1
 
     # # ---- Assign trip behavior ----
     # # Assume it's per default plugged

@@ -4,6 +4,7 @@ import time
 import json
 import numpy as np
 
+
 # Import custom modules
 import Appliances.Appliances as Appliances
 import utils
@@ -78,7 +79,7 @@ def one_profile(config):
     if config['HP']: df_P, df_Flex = Appliances.add_HP(df_P, df_Flex, family, config)
     if config['WB']: df_P, df_Flex = Appliances.add_WB(df_P, df_Flex, family, config)
 
-    if config['timestep'] > 1:
+    if config['timestep'] >= 1:
         df_P, df_Flex = utils.set_timesteps(df_P, df_Flex, config) # changer timestep
 
     config = add_ComFlex_params(config)
@@ -94,8 +95,10 @@ if __name__ == '__main__':
     if mult:
         file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "input_mult.json")
         with open(file_path, 'r', encoding="utf-8") as file: config = json.load(file)  # Load the JSON data into a Python dictionary
-        simulate_all(config)
+        
+        simulate_all(config, plot_res=True)
     else:
         file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "input_single.json")
         with open(file_path, 'r', encoding="utf-8") as file: config = json.load(file)  # Load the JSON data into a Python dictionary
         simulate_one(config, print_res=False, plot_res=True)
+
