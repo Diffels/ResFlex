@@ -420,11 +420,16 @@ def append_recurring(fields, list_param, config):
     return list_param
 
 def append_appliances(list_param, config):
-    app_list = ['WashingMachine', 'DishWasher', 'TumbleDryer', 'WasherDryer']
+    app_list = ['WashingMachine', 'DishWasher']
     values = [np.random.choice([0,1], size=config['nb_households'], p=[1-config['appliances'][f'P_{a}'], config['appliances'][f'P_{a}']]) for a in app_list]
     for i, house in enumerate(list_param):
         house['appliances'] = {}
         for a, appliance in enumerate(app_list):
+            if appliance == 'WashingMachine' and bool(values[a][i]):
+                # Probability of having a TumbleDryer depends on having a WashingMachine
+                prob_td = config['appliances']['P_TumbleDryer_given_WM']
+                has_td = np.random.choice([0, 1], p=[1 - prob_td, prob_td])
+                house['appliances']['TumbleDryer'] = int(has_td)
             house['appliances'][appliance] = int(values[a][i])
     return list_param
 

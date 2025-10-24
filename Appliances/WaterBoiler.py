@@ -30,10 +30,13 @@ def WB_simulate(mDHW, config):
     T_ref[0] = wb_data['T_set']
     
     for i in range(sim_len-1):
-        if T_ref[i] < T_set[i] - tol: P_WB[i] = wb_data['Pmax']
-        elif T_ref[i] > T_set[i] + tol: P_WB[i] = 0
-        elif i>0: P_WB[i] = P_WB[i-1]
-        P_loss[i] = 2 * (T_ref[i] - T_out)*1e-3
+        if T_ref[i] < T_set[i] - tol:
+            P_WB[i] = wb_data['Pmax']
+        else:
+            P_WB[i] = 0
+        # elif i>0:
+        #     P_WB[i] = P_WB[i-1]
+        P_loss[i] = max(0, 2 * (T_ref[i] - T_out)*1e-3)
         T_ref[i+1] = T_ref[i] + 60 * wb_data['C_WB'] * (P_WB[i] - P_use[i] - P_loss[i])
 
 
@@ -43,4 +46,8 @@ def WB_simulate(mDHW, config):
     #mDHW['Power_limited'] = limit_power(mDHW['Power'], wb_data['Pmax']*1e3)  
 
     df_Flex = pd.DataFrame({'P_use_WB': P_use[:-1],'P_loss_WB': P_loss[:-1],'T_set_WB': T_set[:-1],'T_ref_WB': T_ref[:-1],'Water_use': mDHW['mDHW'][:-1]})
+    
+    if (df_Flex["T_ref_WB"] < 0).any():
+        print("Warning: Water temperature below 0°C reached in water boiler simulation.")
+        print( df_Flex[df_Flex["T_ref_WB"] < 0] )
     return P_WB[:-1], df_Flex
