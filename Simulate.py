@@ -28,6 +28,7 @@ def get_profiles(config, dwelling_compo):
     '''
     Function that computes the different load profiles.
 
+<<<<<<< Updated upstream
     Inputs:
         - config (dict): Dictionnay that contains all the inputs defined in Config.xlsx
         - dwelling_compo (list): Containing the dwelling composition.
@@ -39,6 +40,13 @@ def get_profiles(config, dwelling_compo):
         - loads (np.ndarray): Total load during the simulation.
     '''
     times = np.zeros(config['nb_households'])
+=======
+def simulate_all(config, save=True, plot_res=False, print_res=True):
+    houses_params = utils.create_params(config)
+    for h in range(len(houses_params)):
+        print(houses_params[h]["appliances"])
+    dic_df_P, dic_df_Flex, dic_Params = {}, {}, {}
+>>>>>>> Stashed changes
 
     nminutes = config['nb_days'] * 1440 + 1
     P = np.zeros((config['nb_households'], nminutes))

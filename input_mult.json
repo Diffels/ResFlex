@@ -1,0 +1,79 @@
+{  
+    "nb_households": 20,
+    "nb_days": 1,
+    "timestep": 15,
+    "year": 2024,                  
+    "start_day": 0,
+    "flexibility": true,
+    "output": "csv", 
+
+    "appliances": {
+        "P_WashingMachine": 0.65,
+        "P_TumbleDryer_given_WM": 0.6,
+        "P_DishWasher": 0.6
+    },
+
+    "P_PV": 0.65,
+    "PV_data": {
+        "Pmax": [2, 5, 10, 15, 20],
+        "P_Pmax": [0.1, 0.3, 0.4, 0.1, 0.1],
+        "id" :[1],
+        "P_id": [1]
+    },
+
+    "P_BSS": 0.4,
+    "BSS_data":{
+        "Capacity": [5, 10, 15],
+        "P_Capacity": [0.3, 0.4, 0.3],
+        "Pmax": [2, 5, 7],
+        "P_Pmax": [0.3, 0.4, 0.3],
+        "SoC_min": [0.2],
+        "P_SoC_min": [1],
+        "SoC_max": [0.8],
+        "P_SoC_max": [1],
+        "eta": [0.95],
+        "P_eta": [1]
+    },
+
+    "P_WB": 1,
+    "WB_data": {
+        "Pmax": [1.5, 3, 5],
+        "P_Pmax": [0.3, 0.4, 0.3],
+        "Volume": [100, 200, 250],
+        "P_Volume": [0.2, 0.6, 0.2],
+        "T_set": [60],
+        "P_T_set": [1]
+    },
+
+    "P_EV": 0,
+    "EV_data": {
+        "Consumption": [15, 20, 25],
+        "P_Consumption": [0.3, 0.4, 0.3],
+        "Capacity": [30, 50, 60],
+        "P_Capacity": [0.3, 0.4, 0.3],
+        "Pmax": [7, 11, 15],
+        "P_Pmax": [0.3, 0.4, 0.3],
+        "eta": [0.95],
+        "P_eta": [1],
+        "SoC_target": [0.80],
+        "P_SoC_target": [1],
+        "Usage": [7000, 14000, 25000],
+        "P_Usage": [0.25, 0.5, 0.25]
+    },
+    "P_HP": 0.6,
+    "HP_data": {
+        "Year": [1969, 1989, 2006, 2010],
+        "P_Year": [0.25,0.25,0.25,0.25],
+        "Size": [70, 90, 100, 150],
+        "P_Size": [0.2,0.4,0.2,0.2],
+        "Floors": [1,2,3],
+        "P_Floors": [0.10, 0.45, 0.45],
+        "P_nom": [2, 3, 4, 5],
+        "P_P_nom": [0.25,0.25,0.25,0.25],
+        "COP": [5],
+        "P_COP": [1]
+    },
+
+    "inhabitants":[2, 3, 4, 5],
+    "P_inhabitants": [0.25,0.25,0.25,0.25]
+}
