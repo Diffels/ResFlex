@@ -32,10 +32,10 @@ def WB_simulate(mDHW, config):
     for i in range(sim_len-1):
         if T_ref[i] < T_set[i] - tol:
             P_WB[i] = wb_data['Pmax']
-        else:
+        elif T_ref[i] > T_set[i] + tol:
             P_WB[i] = 0
-        # elif i>0:
-        #     P_WB[i] = P_WB[i-1]
+        elif i > 0:
+            P_WB[i] = P_WB[i-1]
         P_loss[i] = max(0, 2 * (T_ref[i] - T_out)*1e-3)
         T_ref[i+1] = T_ref[i] + 60 * wb_data['C_WB'] * (P_WB[i] - P_use[i] - P_loss[i])
 
