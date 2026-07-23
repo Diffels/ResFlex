@@ -4,11 +4,12 @@
 
 import pandas as pd
 import numpy as np
-import random
+import os
 from typing import Any, Tuple
 from datetime import datetime
 from plotly.subplots import make_subplots
 import matplotlib.pyplot as plt
+from stochastic import uniform_probability_centered, probability_event
 
 class EV:
     def __init__(self, config: dict):
@@ -398,7 +399,9 @@ def plot_ev(config, P_EV, Flex_EV):
     )
 
     # Save to HTML
-    output_file = "/Users/diffels/Documents/GitHub/ResFlex/plots/EV_simulation_results.html"
+    plot_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "plots")
+    os.makedirs(plot_dir, exist_ok=True)
+    output_file = os.path.join(plot_dir, "EV_simulation_results.html")
     fig.write_html(output_file)
     print(f"Interactive plot saved to {output_file}")
 
@@ -476,7 +479,7 @@ def get_weekly_trips_from_occupancy(
     # Determine day types for each trip
     day_types = []
     for dep in t_dep:
-        day_index = (dep + day_shift_min // 1440) % 7  # 1440 minutes in a day, shifted by day_shift_min computed in EV_simulate()
+        day_index = (dep // 1440 + day_shift_min // 1440) % 7  # day of week, shifted by day_shift_min computed in EV_simulate()
         if day_index < 5:
             day_types.append('weekday')
         else:
@@ -522,14 +525,16 @@ def get_trip_consumption(config: dict, trips: pd.DataFrame) -> np.float64:
     r_dispatch = 0.1  # Random daily dispatch variation
     r_cons = 0.2  # Random consumption variation
 
-    weekly_km = round(random.uniform(config["EV_data"]["Usage"]*(1-r_dist_w) * 7 / 365, config["EV_data"]["Usage"] * (1+r_dist_w) * 7 / 365))
-    weekly_cons = random.uniform(config["EV_data"]["Consumption"]*(1-r_cons), config["EV_data"]["Consumption"]*(1+r_cons))
+    km_center = config["EV_data"]["Usage"] * 7 / 365
+    cons_center = config["EV_data"]["Consumption"]
+    weekly_km = uniform_probability_centered(km_center, r_dist_w * km_center)
+    weekly_cons = uniform_probability_centered(cons_center, r_cons * cons_center)
     stoch_weekly_kwh = round((weekly_cons/100) * weekly_km, 2)
     print("Weekly consumption:", stoch_weekly_kwh)
 
     # Dispatch the weekly kWh over the trips
     dispatch = trips["duration"] / np.sum(trips["duration"])
-    disp_var = np.random.uniform(1 - r_dispatch, 1 + r_dispatch, size=len(trips))
+    disp_var = uniform_probability_centered(1.0, r_dispatch, size=len(trips))
     stoch_dispatch = disp_var * dispatch
     print("Dispatch:", stoch_dispatch)
     trips_consumptions =  stoch_dispatch * stoch_weekly_kwh
@@ -566,7 +571,7 @@ def charging_outside(E_trip: float, E_leaving: float) -> float:
         
     if r > 1.0: # If journey requires more energy than available, charge mandatory.
         # print(f"Charging outside: {E_trip/2} kWh")
-        stoch_factor_charge = random.uniform(1 - var_ch_outside, 1 + var_ch_outside)
+        stoch_factor_charge = uniform_probability_centered(1.0, var_ch_outside)
         return (E_trip / 2) * stoch_factor_charge
     
     elif r < short_journey_threshold: # Short journeys do not require charge.
@@ -574,8 +579,8 @@ def charging_outside(E_trip: float, E_leaving: float) -> float:
     
     else: # For intermediate journeys, charge with probability r.
         # print(f"Charging outside with probability {r}: ")
-        stoch_factor_charge = random.uniform(1 - var_ch_outside, 1 + var_ch_outside)
-        return (E_trip / 2) * stoch_factor_charge if random.random() < r else 0.0
+        stoch_factor_charge = uniform_probability_centered(1.0, var_ch_outside)
+        return (E_trip / 2) * stoch_factor_charge if probability_event(r) else 0.0
 
 # ---------------------------------------------------------------------
 # 4. Charging events Generator
@@ -740,8 +745,8 @@ def EV_simulate(
         if days_left < 7:
             # Trim trips to remaining days using the DataFrame
             valid_trips = trips['t_dep'] < days_left * 24 * 60
-            trips = trips[valid_trips]
- 
+            trips = trips[valid_trips].reset_index(drop=True)
+
         # Based on arrivals/departures, get charging events
         charges = weekly_charging_events(config, trips)
 
@@ -767,8 +772,8 @@ def EV_simulate(
             Flex_EV.at[arr_idx, "SoC_arr_EV"] = SoC_arr
 
             # For each arrival, find the next departure
-            if i < len(trips):
-                dep = trips.iloc[i]["t_dep"] + w * weekly_timesteps
+            if i + 1 < len(trips):
+                dep = trips.iloc[i + 1]["t_dep"] + w * weekly_timesteps
             else:
                 dep = len(Flex_EV) - 1  # Plugged until the end of the week if no more departures
 
@@ -789,6 +794,7 @@ def EV_simulate(
     # P_EV = P_EV[:total_minutes]
     # Flex_EV = Flex_EV.iloc[:total_minutes]
 
-    plot_ev(config, P_EV, Flex_EV)
+    if config.get("plot_EV", False):
+        plot_ev(config, P_EV, Flex_EV)
 
     return P_EV, Flex_EV

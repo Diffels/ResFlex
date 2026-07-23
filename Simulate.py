@@ -7,6 +7,9 @@ import numpy as np
 # Import custom modules
 import Appliances.Appliances as Appliances
 import utils
+from stochastic import set_seed
+set_seed(369) # Need to be modified for different users to set_seed(user_specific_seed)
+
 
 def simulate_all(config, save=True, plot_res=False, print_res=True):
     houses_params = utils.create_params(config)
@@ -20,7 +23,6 @@ def simulate_all(config, save=True, plot_res=False, print_res=True):
     if save: 
         print("Saving results...")
         utils.save_all(config, dic_df_P, dic_df_Flex, dic_Params, houses_params)
-
 
     if print_res: utils.print_all(config, dic_df_P, dic_df_Flex, dic_Params)
     if plot_res: utils.plot_all(config, dic_df_P, dic_df_Flex, dic_Params)
@@ -91,6 +93,7 @@ def one_profile(config):
 
 if __name__ == '__main__':
     mult = True
+
     if mult:
         file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "input_mult.json")
         with open(file_path, 'r', encoding="utf-8") as file: config = json.load(file)  # Load the JSON data into a Python dictionary

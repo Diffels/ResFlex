@@ -6,6 +6,7 @@ import json
 import os
 import xarray as xr
 from datetime import datetime
+from stochastic import choice
 
 """Saving functions to create files with simulation results"""
 
@@ -421,27 +422,28 @@ def append_recurring(fields, list_param, config):
 
 def append_appliances(list_param, config):
     app_list = ['WashingMachine', 'DishWasher']
-    values = [np.random.choice([0,1], size=config['nb_households'], p=[1-config['appliances'][f'P_{a}'], config['appliances'][f'P_{a}']]) for a in app_list]
+    values = [choice([0,1], size=config['nb_households'], probabilities=[1-config['appliances'][f'P_{a}'], config['appliances'][f'P_{a}']]) for a in app_list]
     for i, house in enumerate(list_param):
         house['appliances'] = {}
+        house['appliances']['TumbleDryer'] = 0
         for a, appliance in enumerate(app_list):
             if appliance == 'WashingMachine' and bool(values[a][i]):
                 # Probability of having a TumbleDryer depends on having a WashingMachine
                 prob_td = config['appliances']['P_TumbleDryer_given_WM']
-                has_td = np.random.choice([0, 1], p=[1 - prob_td, prob_td])
-                house['appliances']['TumbleDryer'] = int(has_td)
+                has_td = choice([0, 1], probabilities=[1 - prob_td, prob_td])
+                house['appliances']['TumbleDryer'] = int(has_td[0])
             house['appliances'][appliance] = int(values[a][i])
     return list_param
 
 def probas_to_list(appliance, field, config):
     probas = config[f'{appliance}_data'][f'P_{field}']
     values = config[f'{appliance}_data'][field]
-    return np.random.choice(values, size=config['nb_households'], p=probas)
+    return choice(values, size=config['nb_households'], probabilities=probas)
 
 def append_family(list_param, config):
     probas = config['P_inhabitants']
     values = config['inhabitants']
-    family = np.random.choice(values, size=config['nb_households'], p=probas)
+    family = choice(values, size=config['nb_households'], probabilities=probas)
     for i, house in enumerate(list_param):
         house['family'] = int(family[i])
         house['occupations'] = ['Random'] * family[i]
@@ -449,7 +451,7 @@ def append_family(list_param, config):
 
 def append_flexible(appliance, fields, list_param, config):
     lists = {field: probas_to_list(appliance, field, config) for field in fields}
-    app = np.random.choice([1, 0], size=config['nb_households'], p=[config[f'P_{appliance}'], 1 - config[f'P_{appliance}']])
+    app = choice([1, 0], size=config['nb_households'], probabilities=[config[f'P_{appliance}'], 1 - config[f'P_{appliance}']])
     for i, house in enumerate(list_param):
         house[appliance] = bool(app[i])
         house[f'{appliance}_data'] = {}
