@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from .ElectricVehicle2 import EV_simulate#, add_params_EV
+from .ElectricVehicle3 import EV_simulate#, add_params_EV
 from .HeatPump import HP_simulate, add_params_HP
 from .WaterBoiler import WB_simulate, add_params_WB
 from .StROBe.Household_mod import Household_mod
@@ -16,7 +16,7 @@ def complete_params(config):
 def get_baseload(config):
     #---Household creation (Base Load and occupancy) -------------
     family = Household_mod(f"Scenario: ", members=config['occupations'], selected_appliances = config['appliances']) # print put in com 
-    family.simulate(year = config['year'], ndays = config['nb_days']) # print in com
+    family.simulate(year = config['year'], ndays = config['nb_days'])
     df_P = pd.DataFrame(family.app_consumption.copy() / 1e3, index=None)
     df_Flex = pd.DataFrame(family.occ_m.copy()[:len(df_P)], index=None)
     df_Flex.columns = ['Occupancy']
@@ -32,11 +32,12 @@ def add_WB(df_P, df_Flex, family, config):
     P_WB, Flex_WB  = WB_simulate(pd.DataFrame({'mDHW':family.mDHW}),config)
     df_P['P_WB'] = P_WB
     df_Flex = pd.concat([df_Flex, Flex_WB], axis=1)
+    
     return df_P, df_Flex
 
 def add_EV(df_P, df_Flex, family, config):   
     # Redefining occupancy profile: (1: Active, 2: Sleeping)-> 1: At Home; (3: Not at home)-> 0: Not at home
-    EV_occ = np.where(np.isin(family.occ_week[0], [1, 2]), 1, 0)
+    EV_occ = np.where(np.isin(family.occ_m[:len(df_P)], [1, 2]), 1, 0)
     P_EV, Flex_EV = EV_simulate(EV_occ,config)
     df_P['P_EV'] =  P_EV
     df_Flex = pd.concat([df_Flex, Flex_EV], axis=1)

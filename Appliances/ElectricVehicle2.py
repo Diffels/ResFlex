@@ -17,6 +17,9 @@ def get_weekly_journey_times(occupancy: np.ndarray[Any, np.dtype[np.bool_]], con
     if len(t_dep) > 0:
         t_arr = t_arr[t_arr > t_dep[0]]
 
+
+
+
     # Pair up departures and arrivals
     min_len = min(len(t_dep), len(t_arr))
     if min_len == 0:

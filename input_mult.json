@@ -1,6 +1,6 @@
 {  
-    "nb_households": 20,
-    "nb_days": 365,
+    "nb_households": 200,
+    "nb_days": 1,
     "timestep": 15,
     "year": 2024,                  
     "start_day": 0,
@@ -9,9 +9,8 @@
 
     "appliances": {
         "P_WashingMachine": 0.65,
-        "P_TumbleDryer": 0.6,
-        "P_DishWasher": 0.6,
-        "P_WasherDryer": 0.25
+        "P_TumbleDryer_given_WM": 0.6,
+        "P_DishWasher": 0.6
     },
 
     "P_PV": 0.65,
@@ -36,7 +35,7 @@
         "P_eta": [1]
     },
 
-    "P_WB": 0.6,
+    "P_WB": 1,
     "WB_data": {
         "Pmax": [1.5, 3, 5],
         "P_Pmax": [0.3, 0.4, 0.3],
@@ -46,7 +45,7 @@
         "P_T_set": [1]
     },
 
-    "P_EV": 0.5,
+    "P_EV": 0,
     "EV_data": {
         "Consumption": [15, 20, 25],
         "P_Consumption": [0.3, 0.4, 0.3],

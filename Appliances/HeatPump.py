@@ -1,11 +1,11 @@
 import pandas as pd
 import numpy as np
 import os
-import random
 from scipy.integrate import solve_ivp
 from dataclasses import dataclass
 import matplotlib.pyplot as plt 
 import plotly.graph_objects as go
+from stochastic import uniform_probability_range
 
 # Find the path to this file
 #file_path = os.path.dirname(os.path.realpath(__file__)) 
@@ -60,10 +60,10 @@ class House:
         wall_surface = round(4 * (surface ** 0.5), 2) * floors * 2.5  # Assume square-shaped house for simplicity
         
         # Window surfaces
-        window_north = max(0, random.uniform(-0.1, 0.2) * wall_surface / 4)
-        window_south = max(0, random.uniform(-0.1, 0.3) * wall_surface / 4)
-        window_east = max(0, random.uniform(-0.1, 0.3) * wall_surface / 4)
-        window_west = max(0, random.uniform(-0.1, 0.3) * wall_surface / 4)
+        window_north = max(0, uniform_probability_range(-0.1, 0.2) * wall_surface / 4)
+        window_south = max(0, uniform_probability_range(-0.1, 0.3) * wall_surface / 4)
+        window_east = max(0, uniform_probability_range(-0.1, 0.3) * wall_surface / 4)
+        window_west = max(0, uniform_probability_range(-0.1, 0.3) * wall_surface / 4)
         window_tot = round(window_north+window_east+window_south+window_west, 2)        
         
         U_tot = (U_wall[year] * wall_surface + U_roof[year] * surface + U_floor[year] * surface + U_window[year] * window_tot)
@@ -100,10 +100,18 @@ def add_params_HP(config):
     config['HP_data']['west_window_surface'] = house.west_window_surface
     return config
 
+_weather_cache = {}
+
+def _load_weather(weather_path):
+    """Cache the weather Excel file so it's only read from disk once per run, not once per household."""
+    if weather_path not in _weather_cache:
+        _weather_cache[weather_path] = pd.read_excel(weather_path)
+    return _weather_cache[weather_path]
+
 def weather_import(house: House, weather_path, start_day, nb_days):
     SF = 0.3    # Solar Factor
-    weather = pd.read_excel(weather_path)
-    
+    weather = _load_weather(weather_path)
+
     T_out = np.repeat(weather['Temperature C'].values, 60)  # Each minute
 
     irr_n = np.repeat(weather['I_north W/m²'].values, 60)
