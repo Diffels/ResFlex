@@ -452,7 +452,15 @@ def get_weekly_trips_from_occupancy(
     # Pair up departures and arrivals (both same length)
     min_len = min(len(t_dep), len(t_arr))
     if min_len == 0:
-        return np.array([], dtype=int), np.array([], dtype=int), np.array([], dtype=int)
+        # No paired departure/arrival this week (e.g. household never left home) -
+        # keep the same schema as the normal return path so callers don't have to special-case it.
+        return pd.DataFrame({
+            't_dep': pd.Series(dtype=int),
+            't_arr': pd.Series(dtype=int),
+            'duration': pd.Series(dtype=int),
+            'daytype': pd.Series(dtype=object),
+            'consumption': pd.Series(dtype=float),
+        })
     t_dep = t_dep[:min_len]
     t_arr = t_arr[:min_len]
     dur_travel = t_arr - t_dep
