@@ -8,7 +8,6 @@ import numpy as np
 import Appliances.Appliances as Appliances
 import utils
 from stochastic import set_seed
-set_seed(369) # Need to be modified for different users to set_seed(user_specific_seed)
 
 
 def simulate_all(config, save=True, plot_res=False, print_res=True):
@@ -27,6 +26,8 @@ def simulate_all(config, save=True, plot_res=False, print_res=True):
     if print_res: utils.print_all(config, dic_df_P, dic_df_Flex, dic_Params)
     if plot_res: utils.plot_all(config, dic_df_P, dic_df_Flex, dic_Params)
 
+    return dic_df_P, dic_df_Flex, dic_Params
+
 def simulate_one(config, save=True, plot_res=False, print_res=True):
     df_P, df_Flex, dic_Param = one_profile(config)
 
@@ -39,8 +40,10 @@ def simulate_one(config, save=True, plot_res=False, print_res=True):
         # New proposed colors:"#c6dee1",'xlabel': 'Time',
         #colors = ["#a7a7a7", "#45bde9", "#3a74e9", "#ea8f45", "#ed5151", "#80d671"]
         dic_plot = {'show': True, 'save': True, 'fontsize': 44, 'figsize_cm':(66, 10), 'title': 'Power Consumption for one Household',
-                     'ylabel': 'Power (kW)', 'grid': True, 'legend': True, 'colors': colors} 
+                     'ylabel': 'Power (kW)', 'grid': True, 'legend': True, 'colors': colors}
         utils.plot_one(df_P, dic_plot, pdf=True)
+
+    return df_P, df_Flex, dic_Param
 
 def add_ComFlex_params(config):
     config["Price_idx"] = 1
@@ -92,6 +95,7 @@ def one_profile(config):
 
 
 if __name__ == '__main__':
+    set_seed(369)  # Reproducible CLI runs. For library usage, call set_seed(...) explicitly instead.
     mult = True
 
     if mult:
