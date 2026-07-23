@@ -500,7 +500,7 @@ def get_weekly_trips_from_occupancy(
         'daytype': day_types
     })
     
-    print("Trips DataFrame:\n", trips)
+    # print("Trips DataFrame:\n", trips)
 
     trips["consumption"] = get_trip_consumption(config, trips)
 
@@ -538,15 +538,15 @@ def get_trip_consumption(config: dict, trips: pd.DataFrame) -> np.float64:
     weekly_km = uniform_probability_centered(km_center, r_dist_w * km_center)
     weekly_cons = uniform_probability_centered(cons_center, r_cons * cons_center)
     stoch_weekly_kwh = round((weekly_cons/100) * weekly_km, 2)
-    print("Weekly consumption:", stoch_weekly_kwh)
+    # print("Weekly consumption:", stoch_weekly_kwh)
 
     # Dispatch the weekly kWh over the trips
     dispatch = trips["duration"] / np.sum(trips["duration"])
     disp_var = uniform_probability_centered(1.0, r_dispatch, size=len(trips))
     stoch_dispatch = disp_var * dispatch
-    print("Dispatch:", stoch_dispatch)
+    # print("Dispatch:", stoch_dispatch)
     trips_consumptions =  stoch_dispatch * stoch_weekly_kwh
-    print("Trips Consumption kWh:", trips_consumptions)
+    # print("Trips Consumption kWh:", trips_consumptions)
 
     return trips_consumptions
 
@@ -741,7 +741,7 @@ def EV_simulate(
     n_weeks = int((config["nb_days"] - 1) / 7) + 1 # int(x) with x < 1 gives 0
 
     for w in range(n_weeks):
-        print(f"--- Week {w} Simulation ---")
+        # print(f"--- Week {w} Simulation ---")
         
         current_week_occupancy = occupancy[w * weekly_timesteps:(w + 1) * weekly_timesteps]
             
