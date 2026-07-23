@@ -12,17 +12,22 @@ These load profiles are used to model neighborhoods or small villages, to repres
 
 ## As a library, from another project
 
-ResFlex is a proper installable package (`resflex`). From another project:
+ResFlex is a proper installable package (`resflex`). This packaging currently lives on the `package-version` branch (not yet merged into `main`), so pin the branch explicitly when installing from GitHub:
 
 ```
-pip install git+https://github.com/Diffels/ResFlex.git
+pip install git+https://github.com/Diffels/ResFlex.git@package-version
 ```
 
 or, for local development against a cloned copy:
 
 ```
-pip install -e /path/to/ResFlex
+git clone https://github.com/Diffels/ResFlex.git
+cd ResFlex
+git checkout package-version
+pip install -e .
 ```
+
+(Once `package-version` is merged into `main`, drop the `@package-version` ref and the `git checkout` step above.)
 
 Then generate profiles with your own parameters, no JSON files or repo layout required — `input_single.json`/`input_mult.json` are just example configs, any dict with the same keys works:
 
