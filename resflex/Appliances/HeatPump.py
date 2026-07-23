@@ -5,7 +5,7 @@ from scipy.integrate import solve_ivp
 from dataclasses import dataclass
 import matplotlib.pyplot as plt 
 import plotly.graph_objects as go
-from stochastic import uniform_probability_range
+from ..stochastic import uniform_probability_range
 
 # Find the path to this file
 #file_path = os.path.dirname(os.path.realpath(__file__)) 

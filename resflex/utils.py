@@ -6,7 +6,7 @@ import json
 import os
 import xarray as xr
 from datetime import datetime
-from stochastic import choice
+from .stochastic import choice
 
 """Saving functions to create files with simulation results"""
 

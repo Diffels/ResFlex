@@ -9,7 +9,7 @@ from typing import Any, Tuple
 from datetime import datetime
 from plotly.subplots import make_subplots
 import matplotlib.pyplot as plt
-from stochastic import uniform_probability_centered, probability_event
+from ..stochastic import uniform_probability_centered, probability_event
 
 class EV:
     def __init__(self, config: dict):

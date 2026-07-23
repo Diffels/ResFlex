@@ -9,27 +9,50 @@ This work uses a tool for generating synthetic behaviors of the households' memb
 These load profiles are used to model neighborhoods or small villages, to represent the reaction of a complete low-voltage grid to different tariffs. Users change their consumption patterns within the defined boundaries, reacting optimally to different energy and grid prices. This allows to evaluate the effects of the regulations for grid tariffs on the customers' energy bills, the grid congestion and the DSO revenues.
 
 # Installation and usage
+
+## As a library, from another project
+
+ResFlex is a proper installable package (`resflex`). From another project:
+
+```
+pip install git+https://github.com/Diffels/ResFlex.git
+```
+
+or, for local development against a cloned copy:
+
+```
+pip install -e /path/to/ResFlex
+```
+
+Then generate profiles with your own parameters, no JSON files or repo layout required — `input_single.json`/`input_mult.json` are just example configs, any dict with the same keys works:
+
+```python
+import resflex
+
+resflex.set_seed(42)  # optional, for reproducible runs
+
+config = {...}  # see "Configuration of inputs" below
+df_P, df_Flex, params = resflex.simulate_one(config, save=False, plot_res=False, print_res=False)
+```
+
+`resflex.simulate_all(config, ...)` works the same way for a stochastic population of households, returning `(dic_df_P, dic_df_Flex, dic_Params)` keyed by household.
+
+## Running from source
+
 Install the predefined environment with conda:
 
 ```
 conda env create -f environment.yml
-```
-
-in the project directory.
-
-Activate the environment you just created with:
-
-```
 conda activate ResFlex
 ```
 
-Run the simulation using:
+in the project directory, then run the simulation with:
 
 ```
-python Simulate.py
+python -m resflex.Simulate
 ```
 
-By default this runs `simulate_all`, generating a stochastic population of households from `input_mult.json`. To instead simulate a single, fully-specified household with `simulate_one`, set `mult = False` in the `if __name__ == '__main__':` block of `Simulate.py` — this reads `input_single.json`.
+By default this runs `simulate_all`, generating a stochastic population of households from `resflex/input_mult.json`. To instead simulate a single, fully-specified household with `simulate_one`, set `mult = False` in the `if __name__ == '__main__':` block of `resflex/Simulate.py` — this reads `resflex/input_single.json`.
 
 If you want to remove the environment, use:
 
@@ -39,7 +62,7 @@ conda remove -n ResFlex --all
 
 # Configuration of inputs
 
-Both input files share these top-level keys:
+Both input files (`resflex/input_single.json`, `resflex/input_mult.json`) share these top-level keys:
 
     "nb_days": Number of days to simulate [day]
     "timestep": Resampling timestep of the output profiles [min]
