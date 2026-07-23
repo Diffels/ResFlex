@@ -63,7 +63,7 @@ def one_profile(config):
     Function that computes the different load profiles.
 
     Inputs:
-        - config (dict): Dictionnay that contains all the inputs defined in Config.yaml
+        - config (dict): Dictionnay that contains all the inputs defined in input_single.json / input_mult.json
     
     Outputs: 
         - df_P (pd.DataFrame): Dataframe containing power consumption of each appliance with 1-minute resolution.

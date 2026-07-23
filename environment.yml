@@ -7,8 +7,6 @@ dependencies:
   - pandas>=0.24.0
   - pip
   - pip:
-    - convertdate
-    - holidays
     - plotly
     - scipy
     - openpyxl

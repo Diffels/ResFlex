@@ -9,69 +9,63 @@ This work uses a tool for generating synthetic behaviors of the households' memb
 These load profiles are used to model neighborhoods or small villages, to represent the reaction of a complete low-voltage grid to different tariffs. Users change their consumption patterns within the defined boundaries, reacting optimally to different energy and grid prices. This allows to evaluate the effects of the regulations for grid tariffs on the customers' energy bills, the grid congestion and the DSO revenues.
 
 # Installation and usage
-Install predefined environement with conda: 
+Install the predefined environment with conda:
 
 ```
- conda env create -f environment.yml
+conda env create -f environment.yml
 ```
 
-in the project directory. 
+in the project directory.
 
-Activate the simulation you just created with: 
-
-```
-conda activate ULG_flex_residential_load
-```
-
-Run the simulation using: 
+Activate the environment you just created with:
 
 ```
-python run.py
+conda activate ResFlex
 ```
 
-Modify the inputs in the `Config.json` file, further information below. 
-
-If you want to remove the environement, use:
+Run the simulation using:
 
 ```
-conda remove -n ULG_flex_residential_load --all
+python Simulate.py
+```
+
+By default this runs `simulate_all`, generating a stochastic population of households from `input_mult.json`. To instead simulate a single, fully-specified household with `simulate_one`, set `mult = False` in the `if __name__ == '__main__':` block of `Simulate.py` — this reads `input_single.json`.
+
+If you want to remove the environment, use:
+
+```
+conda remove -n ResFlex --all
 ```
 
 # Configuration of inputs
 
-The Config.json file defines the following variables:
+Both input files share these top-level keys:
 
-    "nb_days": Number of days [day]
-    "year": Year to simulate [year]
-    "country": (string) Associated country. Needed in ramp_mobility module. Currently is only working for 'BE' (Belgium).                      
-    "nb_households": (int) Households to simulate, ie the number of simulation made.                
-    "start_day":(int) Number of the day at which simulation starts. 
-    "flex_mode": (string) Flexibility type
-        - 'Hours window': is for a flexibility window that is dependent on a time given by the user. For example, if the machine starts at 12pm and the user decides to give a flexibility window of 2h, then the machine will have a flexibility window from 10 to 14h.
-        - 'Daily flexible': loads are flexible over a whole day.
-        - 'Weekly flexible': loads are flexible over a whole week. For example, a machine initially running on Monday could end up running on Friday.
-        - 'Based on consumption': the flexibility window is based on occupancy. It is considered that all machines must be activated manually and that therefore a person must be present at home to activate the machine. However, it is considered that the machine is necessarily launched on the same occupancy slot as initially.
-    "flex_rate": Rate of the flexibility for "flex_mode" == "Hours window" [hour]
-    "plot": (boolean) Make an interactive plot. 
-    "plot_ts": Time step for post-processing plot. [min]                         
-               
-    "appliances": List of appliances presence probabilities. [0; 1]
-    {
-        "WashingMachine": [-],
-        "TumbleDryer": [-],
-        "DishWasher": [-],
-        "WasherDryer": [-]
-    },               
+    "nb_days": Number of days to simulate [day]
+    "timestep": Resampling timestep of the output profiles [min]
+    "year": Calendar year to simulate (drives weekday alignment and weather data) [year]
+    "start_day": Day-of-year offset at which the simulation starts
+    "flexibility": (boolean) Whether to compute/save the flexibility dataframe
+    "output": Output file format when saving results: "csv", "xlsx" or "nc"
 
-    "EV_presence": Presence rate of Electrical Vehicle.          
-    "prob_EV_size": Probabilities array of EV size: [small, medium, large] cfr readme.txt in ramp_mobility module for more informations. 
-    "prob_EV_usage": Probabilities array of EV usage: [short, normal, long] cfr readme.txt in ramp_mobility module for more informations.
-    "prob_EV_charger_power": Probabilities array of power charger: [3.7, 7.4, 11, 22] (kW) 
-    "EV_km_per_year": Number of kilometers per year [km/year]. Used if it's set greater than 0, instead of EV_usage probabilities array.
-    
-    "dwelling_nb_compo": Number of resident in considered household. [person] [0; 5]
-    "dwelling_member1":	Type of resident 1. Choose between: ('Random', 'FTE' (Full Time Employed), 'PTE' (Partial Time Employed), 'U12' (Under 12 y.o.), 'Retired', 'Unemployed', 'School' (Student))
-    "dwelling_member2":	Type of resident 2.     "
-    "dwelling_member3":	Type of resident 3.     "
-    "dwelling_member4":	Type of resident 4.     "
-    "dwelling_member5":	Type of resident 5.     "
+## `input_single.json` (used by `simulate_one`)
+
+Fully specifies one household — appliances and flexible loads are given directly rather than drawn from probabilities.
+
+    "appliances": {"WashingMachine", "TumbleDryer", "DishWasher", "WasherDryer"}: (0/1) presence of each time-shiftable appliance
+    "WB" / "EV" / "HP": (boolean) enable the water boiler / electric vehicle / heat pump for this household
+    "WB_data": {"Pmax" (kW), "Volume" (L), "T_set" (°C)}
+    "EV_data": {"Consumption" (kWh/100km), "Capacity" (kWh), "Pmax" (kW), "eta", "SoC_target" (0-1), "Usage" (km/year)}
+    "HP_data": {"Year" (construction year), "Size" (m²), "Floors", "P_nom" (kW), "COP"}
+    "inhabitants": Number of household members
+    "occupations": List of one occupation type per member, chosen from: 'Random', 'FTE' (Full Time Employed), 'PTE' (Partial Time Employed), 'U12' (Under 12 y.o.), 'Retired', 'Unemployed', 'School' (Student)
+
+## `input_mult.json` (used by `simulate_all`)
+
+Generates `nb_households` households by drawing each appliance/flexible-load parameter from a probability distribution. Every `P_<field>` array is a probability distribution over the corresponding `<field>` array of possible values (both arrays must be the same length, and probabilities must sum to 1).
+
+    "nb_households": Number of households to generate
+    "appliances": {"P_WashingMachine", "P_TumbleDryer_given_WM" (probability of owning a tumble dryer given a washing machine), "P_DishWasher"}: presence probabilities [0-1]
+    "P_PV" / "P_BSS" / "P_WB" / "P_EV" / "P_HP": Probability [0-1] that a household has PV / a battery storage system / a water boiler / an EV / a heat pump
+    "PV_data", "BSS_data", "WB_data", "EV_data", "HP_data": for each parameter of the appliance (e.g. "Pmax", "Capacity"), a value array and its matching "P_<parameter>" probability array
+    "inhabitants" / "P_inhabitants": Possible household sizes and their probability distribution
