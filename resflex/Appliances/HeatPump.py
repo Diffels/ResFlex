@@ -128,7 +128,7 @@ def weather_import(house: House, weather_path, start_day, nb_days):
 
 def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom):
     n_ts = 24*60        # Number of time steps in a day (1 min intervals)
-    abs = 0.5           # Temperature difference threshold for HP control
+    abs = 2           # Temperature difference threshold for HP control
     A_wall = house['wall_surface']
 
     ACH = 0.1  # Air changes per hour [1/h]
