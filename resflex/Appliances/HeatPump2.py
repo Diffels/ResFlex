@@ -92,6 +92,8 @@ def add_params_HP(config):
     config['HP_data']['window_surface'] = house.tot_window_surface
     config['HP_data']['wall_surface'] = house.wall_surface
     config['HP_data']['volume'] = house.volume
+    config['HP_data']['ground_surface'] = house.ground_surface
+    config['HP_data']['floors'] = house.floors
     config['HP_data']['north_window_surface'] = house.north_window_surface
     config['HP_data']['east_window_surface'] = house.east_window_surface
     config['HP_data']['south_window_surface'] = house.south_window_surface
@@ -244,16 +246,16 @@ def heating_dynamics(house, sim_days, T_set, T_out, Q_solar, P_nom_elec,
 
 
 def HP_simulate(T_set, config):
-    hp = config['HP_data']
+    hp_cfg = config['HP_data']
     weather_path = os.path.join(os.path.dirname(__file__), 'database', 'Meteo2022_Liege.xlsx')
-    T_out, Q_solar = weather_import(hp, weather_path, config['start_day'], config['nb_days'])
+    T_out, Q_solar = weather_import(hp_cfg, weather_path, config['start_day'], config['nb_days'])
 
-    cop_fn = cop_curve(hp.get('COP', 3.0))
+    cop_fn = cop_curve(hp_cfg.get('COP', 3.0))
 
     P_elec, T_in, T_wall, diag = heating_dynamics(
-        hp, config['nb_days'], np.asarray(T_set, float), T_out, Q_solar,
-        P_nom_elec=hp['P_nom'], cop_fn=cop_fn, Q_internal=None,
-        ACH=hp.get('ACH', 0.4), aux_kW=hp.get('aux_kW', None),
+        hp_cfg, config['nb_days'], np.asarray(T_set, float), T_out, Q_solar,
+        P_nom_elec=hp_cfg['P_nom'], cop_fn=cop_fn, Q_internal=None,
+        ACH=hp_cfg.get('ACH', 0.4), aux_kW=hp_cfg.get('aux_kW', None),
     )
 
     n = len(T_in)
