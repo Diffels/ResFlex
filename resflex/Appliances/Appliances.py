@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 from .ElectricVehicle3 import EV_simulate#, add_params_EV
-from .HeatPump import HP_simulate, add_params_HP
+from .HeatPump2 import HP_simulate, add_params_HP
 from .WaterBoiler import WB_simulate, add_params_WB
 from .StROBe.Household_mod import Household_mod
 
@@ -24,7 +24,7 @@ def get_baseload(config):
 
 def add_HP(df_P, df_Flex, family, config):
     P_HP, Flex_HP = HP_simulate(family.sh_day, config)
-    df_P['P_HP'] = P_HP/config['HP_data']['COP'] 
+    df_P['P_HP'] = P_HP
     df_Flex = pd.concat([df_Flex, Flex_HP], axis=1)
     return df_P, df_Flex
 

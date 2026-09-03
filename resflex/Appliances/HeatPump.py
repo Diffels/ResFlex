@@ -127,14 +127,12 @@ def weather_import(house: House, weather_path, start_day, nb_days):
     return T_out[start_day*24*60:(start_day+nb_days)*24*60] , (Q_dot_North + Q_dot_East + Q_dot_West + Q_dot_South)[start_day*24*60:(start_day+nb_days)*24*60] 
 
 def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom):
-    n_ts = 24*60        # Number of time steps in a day (1 min intervals)
-    abs = 2           # Temperature difference threshold for HP control
-    A_wall = house['wall_surface']
-
-    ACH = 0.1  # Air changes per hour [1/h]
-    
     """Simulate space heating dynamics with controlled HP power."""
-    k_wall = 0.5  # Wall thickness coefficient, models how much of the wall is considered at room temperature
+
+    n_ts = 24*60        # Number of time steps in a day (1 min intervals)
+    abs = 2             # Temperature difference threshold for HP control
+    ACH = 0.4           # Air changes per hour [1/h]
+    k_wall = 0.5        # Wall thickness coefficient, models how much of the wall is considered at room temperature
 
     # Timeseries initialization
     HP = np.zeros(sim_days * n_ts)      # HP power for each time step
@@ -144,13 +142,14 @@ def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom):
 
     T_in[0] = T_set[0]  # Initial indoor temperature
     T_wall[0] = (T_set[0]+T_out[0])/2  # Initial wall temperature
-    HP[0] = 0  # Initial HP power
-
+    HP[0] = 0  # Initial HP power    
+    
     for ts in range(1,sim_days*n_ts):  # Loop over days
         # Solve heating dynamics
+
         #P_airloss, P_wallloss = heat_loss(house, T_in[ts-1], T_wall[ts-1], T_out[ts-1+n_ts*start_day], P_irr[ts-1+n_ts*start_day])
         P_aircond = k_wall*house['U_tot'] * (T_in[ts-1] - T_wall[ts-1]) # Divided by 2 to account for half the thickness of the wall
-        P_wallloss = ((1-k_wall)*house['U_wall'] * A_wall * (T_wall[ts-1] - T_out[ts-1]) - P_aircond)/1e3  # Conduction losses through walls divided by 2 to account for half the thickness of the wall
+        P_wallloss = ((1-k_wall)*house['U_wall'] * house['wall_surface'] * (T_wall[ts-1] - T_out[ts-1]) - P_aircond)/1e3  # Conduction losses through walls divided by 2 to account for half the thickness of the wall
         Q_exfiltration = (ACH/60)*house['C_air']*(T_in[ts-1] - T_out[ts-1])/60 # in W: [1/min] * m3 * kg/m3 * J/(kg.K) * K / 60s
         P_airloss = (P_aircond - P_irr[ts-1]/10 + Q_exfiltration)/1e3 # Net losses including solar gain [kW]
         P_loss[ts] = P_airloss # Total losses
@@ -170,7 +169,6 @@ def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom):
         dTwall = (-P_wallloss) *1e3/ ((1-k_wall)*house['C_env'])
         T_in[ts] = T_in[ts-1] + dTair*60               # Update indoor temperature
         T_wall[ts] = T_wall[ts-1] + dTwall*60          # Update wall temperature
-        
 
     return HP, T_in, T_wall, P_loss  # Return HP power, indoor and wall temperature, Power losses
 
