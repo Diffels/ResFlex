@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "resflex"
+version = "0.1.0"
+description = "Residential load profile generator including flexibility (EV, heat pump, water boiler)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.10",
+    "pandas>=0.24.0",
+    "matplotlib>=1.5.1",
+    "plotly",
+    "scipy",
+    "openpyxl",
+    "xarray",
+    "XlsxWriter",
+]
+
+[tool.setuptools.packages.find]
+include = ["resflex*"]
+
+[tool.setuptools.package-data]
+resflex = ["*.json"]
+"resflex.Appliances" = ["database/Meteo2022_Liege.xlsx"]
+"resflex.Appliances.StROBe.Data" = ["**/*.txt"]
