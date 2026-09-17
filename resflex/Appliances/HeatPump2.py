@@ -156,9 +156,8 @@ def cop_curve(cop_rated, t_out_rated=7.0, cop_min=1.6, cop_max=5.5):
     return cop # Returning the function itself, not the value at a specific T_out
 
 
-def heating_dynamics(house, sim_days, T_set, T_out, Q_solar, P_nom_elec,
-                     cop_fn=None, Q_internal=None, dt=60.0,
-                     ACH=0.4, deadband=0.3, f_air_mass=2.0, aux_kW=None):
+def heating_dynamics(house, sim_days, T_set, T_out, Q_solar, P_nom_elec, dt=60.0,
+                     ACH=0.4, deadband=2, f_air_mass=2.0):
     """Two-capacity (air + envelope) RC space-heating model with a modulating,
     outdoor-temperature-dependent heat pump and resistive backup.
 
@@ -191,6 +190,8 @@ def heating_dynamics(house, sim_days, T_set, T_out, Q_solar, P_nom_elec,
     UA_fast = UA_others + UA_vent # Air-Outside heat transfer coefficient, W/K, so the fast node adds exactly U_tot - U_wall*A_wall to the total UA
     h_w = 2.0 * UA_wall # Air-wall-Air heat transfer coefficient, W/K, so the walls add exactly U_wall*A_wall to the total UA
 
+
+
     C_air = house['C_air'] * f_air_mass          # + furniture / internal partitions
     C_wall = house['C_env']
     floor_area = house['ground_surface'] * house['floors']
@@ -198,21 +199,17 @@ def heating_dynamics(house, sim_days, T_set, T_out, Q_solar, P_nom_elec,
     T_out = np.asarray(T_out, float)[:N]
     Q_sol = np.asarray(Q_solar, float)[:N]
 
-    if not Q_internal:
-        Q_int = np.full(N, house.get('q_int_W_per_m2', 3.0) * float(floor_area))
-    else:
-        Q_int = np.asarray(Q_internal, float)[:N]
-        
-    Q_gain = Q_int + Q_sol
+    Q_gain = Q_sol
+    print(max(Q_sol))
     T_set = np.asarray(T_set, float)
 
-    if not cop_fn:
-        cop_fn = cop_curve(house.get('COP', 3.0))
-    aux_cap_W = (aux_kW if aux_kW is not None else P_nom_elec) * 1e3
+    # if not cop_fn:
+    #     cop_fn = cop_curve(house.get('COP', 3.0))
+    # aux_cap_W = (aux_kW if aux_kW is not None else P_nom_elec) * 1e3
 
     P_hp = np.zeros(N)
     P_aux = np.zeros(N)
-    COP = np.zeros(N)
+    COP = np.repeat(2.5, N)
     T_in = np.zeros(N)
     T_wall = np.zeros(N)
     Q_loss = np.zeros(N)
@@ -221,28 +218,33 @@ def heating_dynamics(house, sim_days, T_set, T_out, Q_solar, P_nom_elec,
     T_wall[0] = 0.5 * (T_set[0] + T_out[0])
 
     for k in range(1, N):
-        Ti, Tw, To, Ts = T_in[k - 1], T_wall[k - 1], T_out[k - 1], T_set[k - 1]
-        COP[k] = cop_fn(To, HP_water_heating_curve_supply_temp(To))
+        Ti, Tw, To, Ts, Pprev= T_in[k - 1], T_wall[k - 1], T_out[k - 1], T_set[k - 1], P_hp[k - 1]
+        # COP[k] = cop_fn(To, HP_water_heating_curve_supply_temp(To))
 
-        q_hp_cap = P_nom_elec * 1e3 * COP[k]
-        q_cap = q_hp_cap + aux_cap_W
+        q_cap = P_nom_elec * 1e3 * COP[k]
 
-        q_ideal = (C_air * (Ts - Ti) / dt
-                   + UA_fast * (Ti - To)
-                   + h_w * (Ti - Tw)
-                   - Q_gain[k - 1])
-        q_dem = 0.0 if (Ts - Ti) < -deadband else min(max(q_ideal, 0.0), q_cap)
+        # q_ideal = (C_air * (Ts - Ti) / dt
+        #            + UA_fast * (Ti - To)
+        #            + h_w * (Ti - Tw)
+        #            - Q_gain[k - 1])
+        if Ti < Ts - -deadband: q_hp = q_cap
+        elif Ti > Ts + deadband: q_hp = 0
+        else: 
+            q_hp = -( Q_gain[k - 1] - UA_fast * (Ti - To) - h_w * (Ti - Tw) )#Pprev*1e3*COP[k]
+            print(q_hp)
 
-        q_hp = min(q_dem, q_hp_cap)
+
+
+        # q_hp = 0.0 if (Ts - Ti) < -deadband else q_cap
+
         P_hp[k] = q_hp / COP[k] / 1e3
-        P_aux[k] = (q_dem - q_hp) / 1e3
+        # P_aux[k] = (q_dem - q_hp) / 1e3
 
-        T_in[k] = Ti + dt / C_air * (q_dem + Q_gain[k - 1] - UA_fast * (Ti - To) - h_w * (Ti - Tw))
+        T_in[k] = Ti + dt / C_air * (q_hp + Q_gain[k - 1] - UA_fast * (Ti - To) - h_w * (Ti - Tw))
         T_wall[k] = Tw + dt / C_wall * (h_w * (Ti - Tw) - h_w * (Tw - To))
         Q_loss[k] = (UA_fast * (Ti - To) + h_w * (Ti - Tw)) / 1e3
-
-    diag = {'COP': COP, 'P_hp_elec': P_hp, 'P_aux_elec': P_aux, 'Q_loss': Q_loss}
-    return P_hp + P_aux, T_in, T_wall, diag
+    diag = {'COP': COP, 'P_hp_elec': P_hp, 'Q_loss': Q_loss}
+    return P_hp , T_in, T_wall, diag
 
 
 def HP_simulate(T_set, config):
@@ -250,12 +252,10 @@ def HP_simulate(T_set, config):
     weather_path = os.path.join(os.path.dirname(__file__), 'database', 'Meteo2022_Liege.xlsx')
     T_out, Q_solar = weather_import(hp_cfg, weather_path, config['start_day'], config['nb_days'])
 
-    cop_fn = cop_curve(hp_cfg.get('COP', 3.0))
+    cop_fn = None# cop_curve(hp_cfg.get('COP', 3.0))
 
     P_elec, T_in, T_wall, diag = heating_dynamics(
-        hp_cfg, config['nb_days'], np.asarray(T_set, float), T_out, Q_solar,
-        P_nom_elec=hp_cfg['P_nom'], cop_fn=cop_fn, Q_internal=None,
-        ACH=hp_cfg.get('ACH', 0.4), aux_kW=hp_cfg.get('aux_kW', None),
+        hp_cfg, config['nb_days'], np.asarray(T_set, float), T_out, Q_solar, hp_cfg['P_nom']
     )
 
     n = len(T_in)
@@ -265,7 +265,8 @@ def HP_simulate(T_set, config):
         'T_wall_HP': T_wall,
         'T_out_HP': np.asarray(T_out, float)[:n],
         'P_loss_HP': diag['Q_loss'],
-        'COP_HP': diag['COP'],
-        'P_aux_HP': diag['P_aux_elec'],
+        'COP_HP': diag['COP']
     })
     return P_elec, Flex_HP          # NB: now ELECTRICAL kW (was thermal)
+
+

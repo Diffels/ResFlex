@@ -4,7 +4,8 @@
     "year": 2024,                  
     "start_day": 0,
     "flexibility": true,    
-    "output": "csv",                
+    "output": "csv", 
+    "Baseload": 2e3,               
                
     "appliances": {
         "WashingMachine": 1,

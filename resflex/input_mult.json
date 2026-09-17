@@ -7,6 +7,8 @@
     "flexibility": true,
     "output": "csv", 
 
+    "Baseload": 2e3,
+
     "appliances": {
         "P_WashingMachine": 0.65,
         "P_TumbleDryer_given_WM": 0.6,

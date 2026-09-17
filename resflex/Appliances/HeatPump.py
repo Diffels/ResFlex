@@ -73,9 +73,11 @@ class House:
                     K_floor[year] * ground_surface)
         C_air = 1.225 * volume * 1005 # Rho * V * cp
 
-        return House(year=year,floors=floors,ground_surface=ground_surface,wall_surface=wall_surface,volume=volume,
-            north_window_surface=window_north,east_window_surface=window_east,south_window_surface=window_south,west_window_surface=window_west,tot_window_surface=window_tot,
-            U_tot = U_tot,U_wall = U_wall[year],C_env = C_env,C_air = C_air)
+        return House(year=year, floors=floors, ground_surface=ground_surface, wall_surface=wall_surface,
+                     volume=volume, north_window_surface=window_north, east_window_surface=window_east,
+                     south_window_surface=window_south,west_window_surface=window_west,
+                     tot_window_surface=window_tot, U_tot=U_tot, U_wall=U_wall[year],
+                     C_env=C_env, C_air=C_air)
     
     def display(self):
         """Print the house properties"""
@@ -109,22 +111,23 @@ def _load_weather(weather_path):
     return _weather_cache[weather_path]
 
 def weather_import(house: House, weather_path, start_day, nb_days):
-    SF = 0.3    # Solar Factor
+    """Return (T_out [degC], Q_solar [W]) at 1-min resolution for the simulated window.
+
+    SF: Solar Factor ~ g_value * frame_factor * mean_shading (~0.5 * 0.7 * 0.85).
+    """
+    SF = 0.3
     weather = _load_weather(weather_path)
-
-    T_out = np.repeat(weather['Temperature C'].values, 60)  # Each minute
-
+    T_out = np.repeat(weather['Temperature C'].values, 60)
     irr_n = np.repeat(weather['I_north W/m²'].values, 60)
     irr_e = np.repeat(weather['I_east W/m²'].values, 60)
     irr_s = np.repeat(weather['I_south W/m²'].values, 60)
     irr_w = np.repeat(weather['I_west W/m²'].values, 60)
-
-    Q_dot_North = house['north_window_surface'] * irr_n * SF
-    Q_dot_East = house['east_window_surface'] * irr_e * SF
-    Q_dot_West = house['west_window_surface'] * irr_w * SF
-    Q_dot_South = house['south_window_surface'] * irr_s * SF
-    
-    return T_out[start_day*24*60:(start_day+nb_days)*24*60] , (Q_dot_North + Q_dot_East + Q_dot_West + Q_dot_South)[start_day*24*60:(start_day+nb_days)*24*60] 
+    Q_sol = (house['north_window_surface'] * irr_n
+             + house['east_window_surface'] * irr_e
+             + house['south_window_surface'] * irr_s
+             + house['west_window_surface'] * irr_w) * SF
+    sl = slice(start_day * 24 * 60, (start_day + nb_days) * 24 * 60)
+    return T_out[sl], Q_sol[sl]
 
 def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom):
     """Simulate space heating dynamics with controlled HP power."""
@@ -133,6 +136,9 @@ def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom):
     abs = 2             # Temperature difference threshold for HP control
     ACH = 0.4           # Air changes per hour [1/h]
     k_wall = 0.5        # Wall thickness coefficient, models how much of the wall is considered at room temperature
+
+    print(max(P_irr))
+
 
     # Timeseries initialization
     HP = np.zeros(sim_days * n_ts)      # HP power for each time step
@@ -148,16 +154,23 @@ def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom):
         # Solve heating dynamics
 
         #P_airloss, P_wallloss = heat_loss(house, T_in[ts-1], T_wall[ts-1], T_out[ts-1+n_ts*start_day], P_irr[ts-1+n_ts*start_day])
-        P_aircond = k_wall*house['U_tot'] * (T_in[ts-1] - T_wall[ts-1]) # Divided by 2 to account for half the thickness of the wall
+       
+        
+        P_aircond = k_wall*house['U_wall']* house['wall_surface']  * (T_in[ts-1] - T_wall[ts-1]) # Divided by 2 to account for half the thickness of the wall
         P_wallloss = ((1-k_wall)*house['U_wall'] * house['wall_surface'] * (T_wall[ts-1] - T_out[ts-1]) - P_aircond)/1e3  # Conduction losses through walls divided by 2 to account for half the thickness of the wall
-        Q_exfiltration = (ACH/60)*house['C_air']*(T_in[ts-1] - T_out[ts-1])/60 # in W: [1/min] * m3 * kg/m3 * J/(kg.K) * K / 60s
+        Q_exfiltration = ((ACH/60/60)*house['C_air']+house['U_tot']-house['U_wall']*house['wall_surface'])*(T_in[ts-1] - T_out[ts-1]) # in W: [1/min] * m3 * kg/m3 * J/(kg.K) * K / 60s
+        
+
         P_airloss = (P_aircond - P_irr[ts-1]/10 + Q_exfiltration)/1e3 # Net losses including solar gain [kW]
         P_loss[ts] = P_airloss # Total losses
-        
-        if T_in[ts-1] < T_set[ts-1] - abs: HP[ts] = P_nom
-        elif T_in[ts-1] > T_set[ts-1] + abs: HP[ts] = 0
-        else: HP[ts] = HP[ts-1]
 
+        
+        if T_in[ts-1] < T_set[ts-1] : HP[ts] = P_nom
+        elif T_in[ts-1] > T_set[ts-1] + abs: HP[ts] = 0
+        else: HP[ts] = HP[ts] = max(min(P_nom,P_loss[ts]),0)# HP[ts-1]
+
+
+        
         # if T_in[ts-1] < T_set[ts-1]:# - abs*HP_isoff:  
         #     HP[ts] = P_nom # HP is on
         #     HP_isoff = 0
@@ -166,10 +179,9 @@ def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom):
         #     HP_isoff = 1
 
         dTair = (HP[ts] - P_airloss)*1e3 / (house['C_air']+k_wall*house['C_env'])
-        dTwall = (-P_wallloss) *1e3/ ((1-k_wall)*house['C_env'])
+        dTwall = (-P_wallloss) *1e3/ house['C_env']
         T_in[ts] = T_in[ts-1] + dTair*60               # Update indoor temperature
         T_wall[ts] = T_wall[ts-1] + dTwall*60          # Update wall temperature
-
     return HP, T_in, T_wall, P_loss  # Return HP power, indoor and wall temperature, Power losses
 
 def HP_simulate(T_set, config):     
@@ -181,7 +193,9 @@ def HP_simulate(T_set, config):
                                                 P_irr,config['HP_data']['P_nom']*config['HP_data']['COP'])
     # Create DataFrame for the flexibility data
     Flex_HP = pd.DataFrame({'T_set_HP': T_set[:-1],'T_ref_HP': T,'T_wall_HP': T_wall, 'T_out_HP': T_out,'P_loss_HP': P_loss}, index=None)
-    return P_ref, Flex_HP
+    return P_ref/config['HP_data']['COP'], Flex_HP
+    
+
 
 
 

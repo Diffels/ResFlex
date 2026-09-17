@@ -80,7 +80,12 @@ def one_profile(config):
     df_P, df_Flex, family = Appliances.get_baseload(config)
 
     if config['EV']: df_P, df_Flex = Appliances.add_EV(df_P, df_Flex, family, config)
-    if config['HP']: df_P, df_Flex = Appliances.add_HP(df_P, df_Flex, family, config)
+    if config['HP']:
+        wb2_value = config.get('HP2', None) 
+        if wb2_value is None or wb2_value is False:
+            df_P, df_Flex = Appliances.add_HP(df_P, df_Flex, family, config)
+        else:
+            df_P, df_Flex = Appliances.add_HP2(df_P, df_Flex, family, config)
     if config['WB']: df_P, df_Flex = Appliances.add_WB(df_P, df_Flex, family, config)
 
     if config['timestep'] > 1:
