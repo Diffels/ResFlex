@@ -69,7 +69,7 @@ class House:
 
         C_env = (K_wall[year] * wall_surface + K_roof[year] * ground_surface + K_floor[year] * ground_surface)
         
-        C_air = 1.2 * volume * 1005                       # rho * V * cp
+        C_air = 1.2 * volume * 1005                       # rho * V * cp [kg/m3 * m3 * J/kgK] = [J/K]
 
         return House(year=year, floors=floors, ground_surface=ground_surface, wall_surface=wall_surface,
                      volume=volume, north_window_surface=window_north, east_window_surface=window_east,
@@ -191,9 +191,11 @@ def heating_dynamics(house, sim_days, T_set, T_out, Q_solar, P_nom_elec,
     UA_fast = UA_others + UA_vent # Air-Outside heat transfer coefficient, W/K, so the fast node adds exactly U_tot - U_wall*A_wall to the total UA
     h_w = 2.0 * UA_wall # Air-wall-Air heat transfer coefficient, W/K, so the walls add exactly U_wall*A_wall to the total UA
 
-    C_air = house['C_air'] * f_air_mass          # + furniture / internal partitions
     C_wall = house['C_env']
     floor_area = house['ground_surface'] * house['floors']
+
+    C_air = house['C_air'] * f_air_mass          # + furniture / internal partitions
+    # C_air = house['C_air'] + 80 * floor_area * 1000 # (EN ISO 13790: ~80 kJ/m²K light construction to ~260 kJ/m²K heavy)
 
     T_out = np.asarray(T_out, float)[:N]
     Q_sol = np.asarray(Q_solar, float)[:N]
@@ -201,7 +203,7 @@ def heating_dynamics(house, sim_days, T_set, T_out, Q_solar, P_nom_elec,
     if not Q_internal:
         Q_int = np.full(N, house.get('q_int_W_per_m2', 3.0) * float(floor_area))
     else:
-        Q_int = np.asarray(Q_internal, float)[:N]
+        Q_int = np.full(N, Q_internal)
         
     Q_gain = Q_int + Q_sol
     T_set = np.asarray(T_set, float)
@@ -254,7 +256,7 @@ def HP_simulate(T_set, config):
 
     P_elec, T_in, T_wall, diag = heating_dynamics(
         hp_cfg, config['nb_days'], np.asarray(T_set, float), T_out, Q_solar,
-        P_nom_elec=hp_cfg['P_nom'], cop_fn=cop_fn, Q_internal=None,
+        P_nom_elec=hp_cfg['P_nom'], cop_fn=cop_fn, Q_internal=8,
         ACH=hp_cfg.get('ACH', 0.4), aux_kW=hp_cfg.get('aux_kW', None),
     )
 

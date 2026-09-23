@@ -53,11 +53,10 @@ class House:
         K_roof = {'< 45': 7211, '45-70': 11357, '70-90': 11922, '90-07': 12848, '> 08': 14356}
         K_floor = {'< 45': 67352, '45-70': 67352, '70-90': 62673, '90-07': 69245, '> 08': 69246}
 
-        
         # Derived properties
         volume = surface * 2.5 # Volume in m3 (assuming 2.5m height per floor)
         ground_surface = surface / floors  # Ground surface in m2
-        wall_surface = round(4 * (surface ** 0.5), 2) * floors * 2.5  # Assume square-shaped house for simplicity
+        wall_surface = round(4 * (ground_surface ** 0.5), 2) * floors * 2.5  # Assume square-shaped house for simplicity
         
         # Window surfaces
         window_north = max(0, uniform_probability_range(-0.1, 0.2) * wall_surface / 4)
@@ -137,9 +136,6 @@ def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom):
     ACH = 0.4           # Air changes per hour [1/h]
     k_wall = 0.5        # Wall thickness coefficient, models how much of the wall is considered at room temperature
 
-    print(max(P_irr))
-
-
     # Timeseries initialization
     HP = np.zeros(sim_days * n_ts)      # HP power for each time step
     T_in = np.zeros(sim_days * n_ts)    # Indoor temperature at each time step
@@ -155,13 +151,11 @@ def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom):
 
         #P_airloss, P_wallloss = heat_loss(house, T_in[ts-1], T_wall[ts-1], T_out[ts-1+n_ts*start_day], P_irr[ts-1+n_ts*start_day])
        
-        
         P_aircond = k_wall*house['U_wall']* house['wall_surface']  * (T_in[ts-1] - T_wall[ts-1]) # Divided by 2 to account for half the thickness of the wall
         P_wallloss = ((1-k_wall)*house['U_wall'] * house['wall_surface'] * (T_wall[ts-1] - T_out[ts-1]) - P_aircond)/1e3  # Conduction losses through walls divided by 2 to account for half the thickness of the wall
         Q_exfiltration = ((ACH/60/60)*house['C_air']+house['U_tot']-house['U_wall']*house['wall_surface'])*(T_in[ts-1] - T_out[ts-1]) # in W: [1/min] * m3 * kg/m3 * J/(kg.K) * K / 60s
-        
 
-        P_airloss = (P_aircond - P_irr[ts-1]/10 + Q_exfiltration)/1e3 # Net losses including solar gain [kW]
+        P_airloss = (P_aircond - P_irr[ts-1] + Q_exfiltration)/1e3 # Net losses including solar gain [kW]
         P_loss[ts] = P_airloss # Total losses
 
         
@@ -169,8 +163,6 @@ def heating_dynamics(house, sim_days, T_set, T_out, P_irr, P_nom):
         elif T_in[ts-1] > T_set[ts-1] + abs: HP[ts] = 0
         else: HP[ts] = HP[ts] = max(min(P_nom,P_loss[ts]),0)# HP[ts-1]
 
-
-        
         # if T_in[ts-1] < T_set[ts-1]:# - abs*HP_isoff:  
         #     HP[ts] = P_nom # HP is on
         #     HP_isoff = 0

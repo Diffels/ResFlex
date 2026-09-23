@@ -100,7 +100,6 @@ def add_params_HP(config):
     config['HP_data']['west_window_surface'] = house.west_window_surface
     return config
 
-
 _weather_cache = {}
 
 def _load_weather(weather_path):
@@ -129,7 +128,6 @@ def weather_import(house, weather_path, start_day, nb_days):
     sl = slice(start_day * 24 * 60, (start_day + nb_days) * 24 * 60)
     return T_out[sl], Q_sol[sl]
 
-
 # =============================================================================
 #  Space-heating RC model
 # =============================================================================
@@ -157,7 +155,7 @@ def cop_curve(cop_rated, t_out_rated=7.0, cop_min=1.6, cop_max=5.5):
 
 
 def heating_dynamics(house, sim_days, T_set, T_out, Q_solar, P_nom_elec, dt=60.0,
-                     ACH=0.4, deadband=2, f_air_mass=2.0):
+                     ACH=0.4, deadband=0.5, f_air_mass=2.0):
     """Two-capacity (air + envelope) RC space-heating model with a modulating,
     outdoor-temperature-dependent heat pump and resistive backup.
 
@@ -190,11 +188,11 @@ def heating_dynamics(house, sim_days, T_set, T_out, Q_solar, P_nom_elec, dt=60.0
     UA_fast = UA_others + UA_vent # Air-Outside heat transfer coefficient, W/K, so the fast node adds exactly U_tot - U_wall*A_wall to the total UA
     h_w = 2.0 * UA_wall # Air-wall-Air heat transfer coefficient, W/K, so the walls add exactly U_wall*A_wall to the total UA
 
-
-
-    C_air = house['C_air'] * f_air_mass          # + furniture / internal partitions
     C_wall = house['C_env']
     floor_area = house['ground_surface'] * house['floors']
+
+    # C_air = house['C_air'] * f_air_mass          # + furniture / internal partitions
+    C_air = house['C_air'] + 80 * floor_area * 1000 # (EN ISO 13790: ~80 kJ/m²K light construction to ~260 kJ/m²K heavy)
 
     T_out = np.asarray(T_out, float)[:N]
     Q_sol = np.asarray(Q_solar, float)[:N]
@@ -233,8 +231,6 @@ def heating_dynamics(house, sim_days, T_set, T_out, Q_solar, P_nom_elec, dt=60.0
             q_hp = -( Q_gain[k - 1] - UA_fast * (Ti - To) - h_w * (Ti - Tw) )#Pprev*1e3*COP[k]
             print(q_hp)
 
-
-
         # q_hp = 0.0 if (Ts - Ti) < -deadband else q_cap
 
         P_hp[k] = q_hp / COP[k] / 1e3
@@ -254,9 +250,7 @@ def HP_simulate(T_set, config):
 
     cop_fn = None# cop_curve(hp_cfg.get('COP', 3.0))
 
-    P_elec, T_in, T_wall, diag = heating_dynamics(
-        hp_cfg, config['nb_days'], np.asarray(T_set, float), T_out, Q_solar, hp_cfg['P_nom']
-    )
+    P_elec, T_in, T_wall, diag = heating_dynamics(hp_cfg, config['nb_days'], np.asarray(T_set, float), T_out, Q_solar, hp_cfg['P_nom'])
 
     n = len(T_in)
     Flex_HP = pd.DataFrame({
